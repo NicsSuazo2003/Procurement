@@ -2,6 +2,8 @@ using Drmc.Procurement.Application.Common.Messaging;
 using Drmc.Procurement.Application.Features.APP.Commands;
 using Drmc.Procurement.Application.Features.APP.DTO;
 using Drmc.Procurement.Application.Features.APP.Queries;
+using Drmc.Procurement.Application.Features.Auth.Queries;
+using Drmc.Procurement.Application.Features.Users.DTO;
 using Drmc.Procurement.Application.Features.DepartmentSections.Commands;
 using Drmc.Procurement.Application.Features.DepartmentSections.DTO;
 using Drmc.Procurement.Application.Features.DepartmentSections.Queries;
@@ -33,8 +35,10 @@ using Drmc.Procurement.Application.Features.UserRoles.Commands;
 using Drmc.Procurement.Application.Features.UserRoles.DTO;
 using Drmc.Procurement.Application.Features.UserRoles.Queries;
 using Drmc.Procurement.Application.Features.Users.Commands;
-using Drmc.Procurement.Application.Features.Users.DTO;
 using Drmc.Procurement.Application.Features.Users.Queries;
+using Drmc.Procurement.Application.Features.PPMPs.Commands;
+using Drmc.Procurement.Application.Features.PPMPs.Queries;
+using Drmc.Procurement.Application.Features.PPMPs.DTO;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Drmc.Procurement.Infrastructure;
@@ -90,7 +94,6 @@ public static class FeatureHandlerRegistrations
 
         services.AddScoped<IRequestHandler<GetUserCategoryPreferencesQuery, List<UserCategoryPreferenceDto>>, GetUserCategoryPreferencesHandler>();
         services.AddScoped<IRequestHandler<SaveUserCategoryPreferencesCommand, List<UserCategoryPreferenceDto>>, SaveUserCategoryPreferencesHandler>();
-
         services.AddScoped<IRequestHandler<GetUserRolesQuery, List<UserRoleDto>>, GetUserRolesHandler>();
         services.AddScoped<IRequestHandler<AssignUserRoleCommand, UserRoleDto>, AssignUserRoleHandler>();
         services.AddScoped<IRequestHandler<RemoveUserRoleCommand, bool>, RemoveUserRoleHandler>();
@@ -113,6 +116,18 @@ public static class FeatureHandlerRegistrations
         services.AddScoped<IRequestHandler<GetAPPByIdQuery, APPDetailDto?>, GetAPPByIdHandler>();
         services.AddScoped<IRequestHandler<GenerateAPPCommand, GenerateAPPResultDto>, GenerateAPPHandler>();
         services.AddScoped<IRequestHandler<AddReviewedPPMPsCommand, GenerateAPPResultDto>, AddReviewedPPMPsHandler>();
+        services.AddScoped<IRequestHandler<AuthenticateUserQuery, UserDto?>, AuthenticateUserHandler>();
+
+        services.AddScoped<IRequestHandler<GetPagedPPMPsQuery, PagedResult<PPMPDto>>, GetPagedPPMPsHandler>();
+        services.AddScoped<IRequestHandler<GetPPPMSummaryQuery, PPPMSummaryDto>, GetPPPMSummaryHandler>();
+        services.AddScoped<IRequestHandler<GetPPMPByIdQuery, PPMPDetailDto?>, GetPPMPByIdHandler>();
+        services.AddScoped<IRequestHandler<GetPPMPChangeHistoryQuery, List<PPMPChangeHistoryDto>>, GetPPMPChangeHistoryHandler>();
+        services.AddScoped<IRequestHandler<CreatePPMPCommand, PPMPDetailDto>, CreatePPMPHandler>();
+        services.AddScoped<IRequestHandler<SubmitPPMPCommand, PPMPDetailDto>, SubmitPPMPHandler>();
+        services.AddScoped<IRequestHandler<ApprovePPMPCommand, PPMPDetailDto>, ApprovePPMPHandler>();
+        services.AddScoped<IRequestHandler<StartPPMPReviewCommand, PPMPDetailDto>, StartPPMPReviewHandler>();
+        services.AddScoped<IRequestHandler<CompletePPMPReviewCommand, PPMPDetailDto>, CompletePPMPReviewHandler>();
+        services.AddScoped<IRequestHandler<UpdatePPMPCommand, PPMPDetailDto>, UpdatePPMPHandler>();
 
         return services;
     }

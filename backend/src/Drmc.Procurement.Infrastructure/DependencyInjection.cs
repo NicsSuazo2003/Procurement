@@ -8,8 +8,6 @@ using Drmc.Procurement.Application.Features.PlanningYearCategories.Interfaces;
 using Drmc.Procurement.Application.Features.PlanningYearItems.Interfaces;
 using Drmc.Procurement.Application.Features.PlanningYears.Interfaces;
 using Drmc.Procurement.Application.Features.PPMPs.Interfaces;
-using Drmc.Procurement.Application.Features.PPMPs.Commands;
-using Drmc.Procurement.Application.Features.PPMPs.Queries;
 using Drmc.Procurement.Application.Features.ProcurementCategories.Interfaces;
 using Drmc.Procurement.Application.Features.Roles.Interfaces;
 using Drmc.Procurement.Application.Features.UserCategoryPreferences.Interfaces;
@@ -79,17 +77,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
         services.AddScoped<IDispatcher, ServiceProviderDispatcher>();
-        services.AddScoped<IRequestHandler<GetPagedPPMPsQuery, Drmc.Procurement.Application.Features.PPMPs.DTO.PagedResult<Drmc.Procurement.Application.Features.PPMPs.DTO.PPMPDto>>, GetPagedPPMPsHandler>();
-        services.AddScoped<IRequestHandler<GetPPPMSummaryQuery, Drmc.Procurement.Application.Features.PPMPs.DTO.PPPMSummaryDto>, GetPPPMSummaryHandler>();
-        services.AddScoped<IRequestHandler<GetPPMPByIdQuery, Drmc.Procurement.Application.Features.PPMPs.DTO.PPMPDetailDto?>, GetPPMPByIdHandler>();
-        services.AddScoped<IRequestHandler<GetPPMPChangeHistoryQuery, List<Drmc.Procurement.Application.Features.PPMPs.DTO.PPMPChangeHistoryDto>>, GetPPMPChangeHistoryHandler>();
-        services.AddScoped<IRequestHandler<CreatePPMPCommand, Drmc.Procurement.Application.Features.PPMPs.DTO.PPMPDetailDto>, CreatePPMPHandler>();
-        services.AddScoped<IRequestHandler<SubmitPPMPCommand, Drmc.Procurement.Application.Features.PPMPs.DTO.PPMPDetailDto>, SubmitPPMPHandler>();
-        services.AddScoped<IRequestHandler<ApprovePPMPCommand, Drmc.Procurement.Application.Features.PPMPs.DTO.PPMPDetailDto>, ApprovePPMPHandler>();
-        services.AddScoped<IRequestHandler<StartPPMPReviewCommand, Drmc.Procurement.Application.Features.PPMPs.DTO.PPMPDetailDto>, StartPPMPReviewHandler>();
-        services.AddScoped<IRequestHandler<CompletePPMPReviewCommand, Drmc.Procurement.Application.Features.PPMPs.DTO.PPMPDetailDto>, CompletePPMPReviewHandler>();
-        services.AddScoped<IRequestHandler<UpdatePPMPCommand, Drmc.Procurement.Application.Features.PPMPs.DTO.PPMPDetailDto>, UpdatePPMPHandler>();
-
+        services.AddFeatureHandlers();
         return services;
     }
 }

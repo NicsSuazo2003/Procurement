@@ -4,23 +4,9 @@ using Drmc.Procurement.Application.Features.Roles.Interfaces;
 
 namespace Drmc.Procurement.Application.Features.Roles.Commands;
 
-public sealed record GetAllRolesQuery : IQuery<List<RoleDto>>;
-public sealed record GetRoleByIdQuery(int Id) : IQuery<RoleDto?>;
 public sealed record CreateRoleCommand(CreateRoleRequest Request) : ICommand<RoleDto>;
 public sealed record UpdateRoleCommand(int Id, CreateRoleRequest Request) : ICommand<RoleDto?>;
 public sealed record DeleteRoleCommand(int Id) : ICommand<bool>;
-
-public sealed class GetAllRolesHandler(IRoleService service) : IRequestHandler<GetAllRolesQuery, List<RoleDto>>
-{
-    public Task<List<RoleDto>> Handle(GetAllRolesQuery request, CancellationToken cancellationToken = default) =>
-        service.GetAllAsync();
-}
-
-public sealed class GetRoleByIdHandler(IRoleService service) : IRequestHandler<GetRoleByIdQuery, RoleDto?>
-{
-    public Task<RoleDto?> Handle(GetRoleByIdQuery request, CancellationToken cancellationToken = default) =>
-        service.GetByIdAsync(request.Id);
-}
 
 public sealed class CreateRoleHandler(IRoleService service) : IRequestHandler<CreateRoleCommand, RoleDto>
 {

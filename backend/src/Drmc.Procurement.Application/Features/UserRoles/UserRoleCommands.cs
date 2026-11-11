@@ -4,15 +4,8 @@ using Drmc.Procurement.Application.Features.UserRoles.Interfaces;
 
 namespace Drmc.Procurement.Application.Features.UserRoles.Commands;
 
-public sealed record GetUserRolesQuery(int UserId) : IQuery<List<UserRoleDto>>;
 public sealed record AssignUserRoleCommand(int UserId, AssignUserRoleRequest Request) : ICommand<UserRoleDto>;
 public sealed record RemoveUserRoleCommand(int UserId, int RoleId) : ICommand<bool>;
-
-public sealed class GetUserRolesHandler(IUserRoleService service) : IRequestHandler<GetUserRolesQuery, List<UserRoleDto>>
-{
-    public Task<List<UserRoleDto>> Handle(GetUserRolesQuery request, CancellationToken cancellationToken = default) =>
-        service.GetUserRolesAsync(request.UserId);
-}
 
 public sealed class AssignUserRoleHandler(IUserRoleService service) : IRequestHandler<AssignUserRoleCommand, UserRoleDto>
 {
