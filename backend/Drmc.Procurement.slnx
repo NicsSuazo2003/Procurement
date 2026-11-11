@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Drmc.Procurement.Application/Drmc.Procurement.Application.csproj" />
+    <Project Path="src/Drmc.Procurement.Domain/Drmc.Procurement.Domain.csproj" />
+    <Project Path="src/Drmc.Procurement.Infrastructure/Drmc.Procurement.Infrastructure.csproj" />
+    <Project Path="src/Drmc.Procurement.WebApi/Drmc.Procurement.WebApi.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Drmc.Procurement.IntegrationTests/Drmc.Procurement.IntegrationTests.csproj" />
+    <Project Path="tests/Drmc.Procurement.UnitTests/Drmc.Procurement.UnitTests.csproj" />
+  </Folder>
+</Solution>

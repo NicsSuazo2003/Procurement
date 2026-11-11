@@ -1,0 +1,60 @@
+import type { CatalogItem } from '../models/catalog.types'
+
+export const sampleCatalog: CatalogItem[] = [
+  {
+    id: 1,
+    code: 'OFF-001',
+    name: 'Bond Paper A4',
+    category: 'Office Supplies',
+    unit: 'Ream',
+    referencePrice: 280,
+  },
+  {
+    id: 2,
+    code: 'OFF-002',
+    name: 'Ballpen - Blue',
+    category: 'Office Supplies',
+    unit: 'Box',
+    referencePrice: 180,
+  },
+  {
+    id: 3,
+    code: 'OFF-003',
+    name: 'Printer Ink Cartridge',
+    category: 'Office Supplies',
+    unit: 'Piece',
+    referencePrice: 1250,
+  },
+  {
+    id: 4,
+    code: 'MED-001',
+    name: 'Examination Gloves',
+    category: 'Medical Supplies',
+    unit: 'Box',
+    referencePrice: 450,
+  },
+  {
+    id: 5,
+    code: 'MED-002',
+    name: 'Surgical Mask',
+    category: 'Medical Supplies',
+    unit: 'Box',
+    referencePrice: 320,
+  },
+  {
+    id: 6,
+    code: 'MED-003',
+    name: 'Disinfectant Solution',
+    category: 'Medical Supplies',
+    unit: 'Gallon',
+    referencePrice: 680,
+  },
+  {
+    id: 7,
+    code: 'SER-001',
+    name: 'Printer Maintenance',
+    category: 'Services',
+    unit: 'Service',
+    referencePrice: 5000,
+  },
+]
