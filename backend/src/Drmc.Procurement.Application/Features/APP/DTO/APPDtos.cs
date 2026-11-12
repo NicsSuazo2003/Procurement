@@ -67,4 +67,4 @@ public class GenerateAPPResultDto
     public int CategoryCount { get; set; }
     public int ItemCount { get; set; }
     public decimal TotalEstimatedBudget { get; set; }
-}
+}   
