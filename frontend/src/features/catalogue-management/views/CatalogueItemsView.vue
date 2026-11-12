@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import {
   Search,
   Plus,
@@ -8,6 +8,8 @@ import {
   X,
   Package,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
 } from '@lucide/vue'
 
 import { masterDataApiService } from '@/features/ppmp-app/services/masterDataApiService'
@@ -30,6 +32,10 @@ const successMessage = ref('')
 const searchQuery = ref('')
 const selectedCategory = ref('all')
 const selectedStatus = ref('all')
+
+// Pagination State
+const currentPage = ref(1)
+const itemsPerPage = ref(10)
 
 const showModal = ref(false)
 const editingItem = ref<ItemDto | null>(null)
@@ -67,6 +73,33 @@ const filteredItems = computed(() => {
 
     return matchesSearch && matchesCategory && matchesStatus
   })
+})
+
+// Reset to page 1 whenever filters or search query change
+watch([searchQuery, selectedCategory, selectedStatus], () => {
+  currentPage.value = 1
+})
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredItems.value.length / itemsPerPage.value) || 1
+})
+
+const paginatedItems = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value
+  const end = start + itemsPerPage.value
+  return filteredItems.value.slice(start, end)
+})
+
+const paginationStartItem = computed(() => {
+  if (filteredItems.value.length === 0) return 0
+  return (currentPage.value - 1) * itemsPerPage.value + 1
+})
+
+const paginationEndItem = computed(() => {
+  return Math.min(
+    currentPage.value * itemsPerPage.value,
+    filteredItems.value.length,
+  )
 })
 
 const activeCount = computed(() =>
@@ -373,7 +406,7 @@ onMounted(loadData)
 
           <tbody class="divide-y divide-slate-100">
             <tr
-              v-for="item in filteredItems"
+              v-for="item in paginatedItems"
               :key="item.itemId"
               class="hover:bg-slate-50"
             >
@@ -467,11 +500,56 @@ onMounted(loadData)
         </table>
       </div>
 
+      <!-- Pagination Footer -->
       <div
-        v-if="!loading"
-        class="border-t border-slate-200 px-5 py-3 text-xs text-slate-500"
+        v-if="!loading && filteredItems.length > 0"
+        class="flex flex-col items-center justify-between gap-4 border-t border-slate-200 px-5 py-4 sm:flex-row"
       >
-        Showing {{ filteredItems.length }} of {{ items.length }} catalogue items
+        <div class="flex items-center gap-3 text-xs text-slate-500">
+          <span>
+            Showing <span class="font-medium text-slate-700">{{ paginationStartItem }}</span> to <span class="font-medium text-slate-700">{{ paginationEndItem }}</span> of <span class="font-medium text-slate-700">{{ filteredItems.length }}</span> items
+          </span>
+
+          <div class="flex items-center gap-1.5 pl-3 border-l border-slate-200">
+            <span>Per page:</span>
+            <select
+              v-model.number="itemsPerPage"
+              class="rounded border border-slate-300 bg-white px-2 py-1 text-xs outline-none focus:border-emerald-600"
+              @change="currentPage = 1"
+            >
+              <option :value="10">10</option>
+              <option :value="25">25</option>
+              <option :value="50">50</option>
+              <option :value="100">100</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            class="flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="currentPage === 1"
+            @click="currentPage--"
+          >
+            <ChevronLeft :size="16" />
+            Previous
+          </button>
+
+          <span class="text-xs text-slate-600 px-2">
+            Page <span class="font-semibold text-slate-900">{{ currentPage }}</span> of <span class="font-semibold text-slate-900">{{ totalPages }}</span>
+          </span>
+
+          <button
+            type="button"
+            class="flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="currentPage >= totalPages"
+            @click="currentPage++"
+          >
+            Next
+            <ChevronRight :size="16" />
+          </button>
+        </div>
       </div>
     </div>
 
