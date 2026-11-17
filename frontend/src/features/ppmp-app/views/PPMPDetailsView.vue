@@ -605,7 +605,7 @@ function getStatusClass(status: string): string {
 
           <div>
             <p class="text-xs font-medium uppercase text-gray-500">
-              Department
+              Unit
             </p>
 
             <p class="mt-1 font-medium text-gray-900">
@@ -982,7 +982,7 @@ function getStatusClass(status: string): string {
                           <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                             <div>
                               <h4 class="text-sm font-semibold text-gray-800">
-                                Section Quantity Allocation
+                                Sub-Unit Quantity Allocation
                               </h4>
 
                               <p class="mt-1 text-xs text-gray-500">
@@ -1004,11 +1004,11 @@ function getStatusClass(status: string): string {
                               <thead class="bg-gray-50 text-xs uppercase text-gray-500">
                                 <tr>
                                   <th class="px-3 py-2 font-medium">
-                                    Section Code
+                                    Sub-Unit Code
                                   </th>
 
                                   <th class="px-3 py-2 font-medium">
-                                    Section
+                                    Sub-Unit
                                   </th>
 
                                   <th class="px-3 py-2 text-right font-medium">
@@ -1060,7 +1060,7 @@ function getStatusClass(status: string): string {
                             v-else
                             class="rounded-md bg-gray-50 p-4 text-sm text-gray-500"
                           >
-                            No section allocations recorded for this item.
+                            No sub-unit allocations recorded for this item.
                           </p>
 
                         </div>
@@ -1498,7 +1498,7 @@ function getStatusClass(status: string): string {
                   >
 
                     <h4 class="mb-3 text-xs font-semibold uppercase text-gray-600">
-                      Section Allocation Changes
+                      Sub-Unit Allocation Changes
                     </h4>
 
                     <div class="space-y-2">

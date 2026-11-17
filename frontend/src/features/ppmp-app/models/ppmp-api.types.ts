@@ -21,6 +21,13 @@ export interface CreatePPMPItemRequest {
   projectType: string
   preProcurementConference: boolean
 
+  recommendedModeOfProcurement: string
+  startOfProcurementActivity: string
+  endOfProcurementActivity: string
+  expectedDeliveryImplementationPeriod: string
+  sourceOfFunds: string
+  attachedSupportingDocuments: string
+
   quantity: number
   unitPrice: number
 
@@ -75,6 +82,13 @@ export interface PPMPItemApi {
   projectType: string
   preProcurementConference: boolean
 
+  recommendedModeOfProcurement: string
+  startOfProcurementActivity: string
+  endOfProcurementActivity: string
+  expectedDeliveryImplementationPeriod: string
+  sourceOfFunds: string
+  attachedSupportingDocuments: string
+
   quantity: number
   unitPrice: number
   estimatedBudget: number
@@ -106,6 +120,13 @@ export interface UpdatePPMPItemRequest {
   generalDescriptionAndObjective: string
   projectType: string
   preProcurementConference: boolean
+
+  recommendedModeOfProcurement: string
+  startOfProcurementActivity: string
+  endOfProcurementActivity: string
+  expectedDeliveryImplementationPeriod: string
+  sourceOfFunds: string
+  attachedSupportingDocuments: string
 
   quantity: number
   unitPrice: number

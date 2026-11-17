@@ -1,4 +1,6 @@
+using System.Globalization;
 using Drmc.Procurement.Application.Common.Messaging;
+using Drmc.Procurement.Application.Features.PPMPs;
 using Drmc.Procurement.Application.Features.PPMPs.DTO;
 using Drmc.Procurement.Application.Features.PPMPs.Interfaces;
 using Drmc.Procurement.Domain.Entities.Audit;
@@ -104,7 +106,7 @@ public sealed class UpdatePPMPHandler(
         var invalidSections = submittedSectionIds.Except(validSectionIds).ToList();
         if (invalidSections.Count > 0)
         {
-            throw new InvalidOperationException($"Section ID {invalidSections[0]} is invalid or inactive.");
+            throw new InvalidOperationException($"Sub-Unit ID {invalidSections[0]} is invalid or inactive.");
         }
 
         var sectionLookup = await referenceRepository.GetActiveDepartmentSectionsAsync(
@@ -274,15 +276,50 @@ public sealed class UpdatePPMPHandler(
         }
 
         var generalDescription = request.GeneralDescriptionAndObjective.Trim();
-        var projectType = request.ProjectType.Trim();
+        var projectType = PPMPProjectTypes.Normalize(request.ProjectType);
         if (string.IsNullOrWhiteSpace(generalDescription))
         {
             throw new InvalidOperationException("General description and objective are required.");
         }
 
-        if (string.IsNullOrWhiteSpace(projectType))
+        if (string.IsNullOrWhiteSpace(request.RecommendedModeOfProcurement))
         {
-            throw new InvalidOperationException("Project type is required.");
+            throw new InvalidOperationException("Recommended mode of procurement is required.");
+        }
+
+        if (!IsValidProcurementMonth(request.StartOfProcurementActivity))
+        {
+            throw new InvalidOperationException("A valid start month for procurement activity is required.");
+        }
+
+        if (!IsValidProcurementMonth(request.EndOfProcurementActivity))
+        {
+            throw new InvalidOperationException("A valid end month for procurement activity is required.");
+        }
+
+        var startMonth = DateTime.ParseExact(
+            request.StartOfProcurementActivity,
+            "yyyy-MM",
+            CultureInfo.InvariantCulture);
+        var endMonth = DateTime.ParseExact(
+            request.EndOfProcurementActivity,
+            "yyyy-MM",
+            CultureInfo.InvariantCulture);
+        if (endMonth < startMonth)
+        {
+            throw new InvalidOperationException(
+                "Procurement activity cannot end before it starts.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ExpectedDeliveryImplementationPeriod))
+        {
+            throw new InvalidOperationException(
+                "Expected delivery or implementation period is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.SourceOfFunds))
+        {
+            throw new InvalidOperationException("Source of funds is required.");
         }
 
         if (string.IsNullOrWhiteSpace(description) || string.IsNullOrWhiteSpace(unit))
@@ -292,12 +329,12 @@ public sealed class UpdatePPMPHandler(
 
         if (request.SectionAllocations == null || request.SectionAllocations.Count == 0)
         {
-            throw new InvalidOperationException($"Item '{description}' must have at least one section allocation.");
+            throw new InvalidOperationException($"Item '{description}' must have at least one sub-unit allocation.");
         }
 
         if (request.SectionAllocations.GroupBy(allocation => allocation.SectionId).Any(group => group.Count() > 1))
         {
-            throw new InvalidOperationException($"Item '{description}' contains duplicate section allocations.");
+            throw new InvalidOperationException($"Item '{description}' contains duplicate sub-unit allocations.");
         }
 
         if (request.SectionAllocations.Any(allocation => allocation.Quantity <= 0))
@@ -327,11 +364,26 @@ public sealed class UpdatePPMPHandler(
             GeneralDescriptionAndObjective = generalDescription,
             ProjectType = projectType,
             PreProcurementConference = request.PreProcurementConference,
+            RecommendedModeOfProcurement = request.RecommendedModeOfProcurement?.Trim() ?? string.Empty,
+            StartOfProcurementActivity = request.StartOfProcurementActivity?.Trim() ?? string.Empty,
+            EndOfProcurementActivity = request.EndOfProcurementActivity?.Trim() ?? string.Empty,
+            ExpectedDeliveryImplementationPeriod =
+                request.ExpectedDeliveryImplementationPeriod?.Trim() ?? string.Empty,
+            SourceOfFunds = request.SourceOfFunds?.Trim() ?? string.Empty,
+            AttachedSupportingDocuments = request.AttachedSupportingDocuments?.Trim() ?? string.Empty,
             Quantity = request.Quantity,
             UnitPrice = request.UnitPrice,
             EstimatedBudget = request.Quantity * request.UnitPrice
         };
     }
+
+    private static bool IsValidProcurementMonth(string? value) =>
+        DateTime.TryParseExact(
+            value,
+            "yyyy-MM",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out _);
 
     private static bool HasItemChanged(PPMPItem current, PPMPItem updated) =>
         current.ItemId != updated.ItemId ||
@@ -344,6 +396,12 @@ public sealed class UpdatePPMPHandler(
         current.GeneralDescriptionAndObjective != updated.GeneralDescriptionAndObjective ||
         current.ProjectType != updated.ProjectType ||
         current.PreProcurementConference != updated.PreProcurementConference ||
+        current.RecommendedModeOfProcurement != updated.RecommendedModeOfProcurement ||
+        current.StartOfProcurementActivity != updated.StartOfProcurementActivity ||
+        current.EndOfProcurementActivity != updated.EndOfProcurementActivity ||
+        current.ExpectedDeliveryImplementationPeriod != updated.ExpectedDeliveryImplementationPeriod ||
+        current.SourceOfFunds != updated.SourceOfFunds ||
+        current.AttachedSupportingDocuments != updated.AttachedSupportingDocuments ||
         current.Quantity != updated.Quantity ||
         current.UnitPrice != updated.UnitPrice ||
         current.EstimatedBudget != updated.EstimatedBudget;
@@ -361,6 +419,12 @@ public sealed class UpdatePPMPHandler(
             PreviousGeneralDescriptionAndObjective = previous?.GeneralDescriptionAndObjective,
             PreviousProjectType = previous?.ProjectType,
             PreviousPreProcurementConference = previous?.PreProcurementConference,
+            PreviousRecommendedModeOfProcurement = previous?.RecommendedModeOfProcurement,
+            PreviousStartOfProcurementActivity = previous?.StartOfProcurementActivity,
+            PreviousEndOfProcurementActivity = previous?.EndOfProcurementActivity,
+            PreviousExpectedDeliveryImplementationPeriod = previous?.ExpectedDeliveryImplementationPeriod,
+            PreviousSourceOfFunds = previous?.SourceOfFunds,
+            PreviousAttachedSupportingDocuments = previous?.AttachedSupportingDocuments,
             UpdatedItemId = updated?.ItemId,
             UpdatedItemCode = updated?.ItemCode,
             UpdatedDescription = updated?.ItemDescription,
@@ -370,7 +434,13 @@ public sealed class UpdatePPMPHandler(
             UpdatedEstimatedBudget = updated?.EstimatedBudget,
             UpdatedGeneralDescriptionAndObjective = updated?.GeneralDescriptionAndObjective,
             UpdatedProjectType = updated?.ProjectType,
-            UpdatedPreProcurementConference = updated?.PreProcurementConference
+            UpdatedPreProcurementConference = updated?.PreProcurementConference,
+            UpdatedRecommendedModeOfProcurement = updated?.RecommendedModeOfProcurement,
+            UpdatedStartOfProcurementActivity = updated?.StartOfProcurementActivity,
+            UpdatedEndOfProcurementActivity = updated?.EndOfProcurementActivity,
+            UpdatedExpectedDeliveryImplementationPeriod = updated?.ExpectedDeliveryImplementationPeriod,
+            UpdatedSourceOfFunds = updated?.SourceOfFunds,
+            UpdatedAttachedSupportingDocuments = updated?.AttachedSupportingDocuments
         };
 
     private static void AddAllocationSnapshots(
@@ -416,6 +486,12 @@ public sealed class UpdatePPMPHandler(
         target.GeneralDescriptionAndObjective = source.GeneralDescriptionAndObjective;
         target.ProjectType = source.ProjectType;
         target.PreProcurementConference = source.PreProcurementConference;
+        target.RecommendedModeOfProcurement = source.RecommendedModeOfProcurement;
+        target.StartOfProcurementActivity = source.StartOfProcurementActivity;
+        target.EndOfProcurementActivity = source.EndOfProcurementActivity;
+        target.ExpectedDeliveryImplementationPeriod = source.ExpectedDeliveryImplementationPeriod;
+        target.SourceOfFunds = source.SourceOfFunds;
+        target.AttachedSupportingDocuments = source.AttachedSupportingDocuments;
         target.Quantity = source.Quantity;
         target.UnitPrice = source.UnitPrice;
         target.EstimatedBudget = source.EstimatedBudget;

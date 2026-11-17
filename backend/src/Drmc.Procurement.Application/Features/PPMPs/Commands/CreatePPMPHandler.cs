@@ -1,6 +1,7 @@
 using Drmc.Procurement.Application.Common.Messaging;
 using Drmc.Procurement.Application.Features.PPMPs.DTO;
 using Drmc.Procurement.Application.Features.PPMPs.Interfaces;
+using Drmc.Procurement.Application.Features.PPMPs;
 using Drmc.Procurement.Domain.Entities.Procurement;
 
 namespace Drmc.Procurement.Application.Features.PPMPs.Commands;
@@ -20,7 +21,7 @@ public sealed class CreatePPMPHandler(
         if (request.DepartmentId != command.DepartmentId)
         {
             throw new InvalidOperationException(
-                "You can only create a PPMP for your own department.");
+                "You can only create a PPMP for your own unit.");
         }
 
         if (request.Items == null || request.Items.Count == 0)
@@ -35,7 +36,7 @@ public sealed class CreatePPMPHandler(
         if (department == null)
         {
             throw new InvalidOperationException(
-                "The selected department does not exist or is inactive.");
+                "The selected unit does not exist or is inactive.");
         }
 
         var planningYear = await referenceRepository.GetPlanningYearAsync(
@@ -65,7 +66,7 @@ public sealed class CreatePPMPHandler(
         if (creator.DepartmentId != command.DepartmentId)
         {
             throw new InvalidOperationException(
-                "The creator does not belong to the selected department.");
+                "The creator does not belong to the selected unit.");
         }
 
         var submittedCategoryIds = request.Items
@@ -124,7 +125,7 @@ public sealed class CreatePPMPHandler(
         if (invalidSections.Count > 0)
         {
             throw new InvalidOperationException(
-                $"Section ID {invalidSections[0]} does not exist, is inactive, or does not belong to the selected department.");
+                $"Sub-Unit ID {invalidSections[0]} does not exist, is inactive, or does not belong to the selected unit.");
         }
 
         var ppmp = new PPMP
@@ -203,18 +204,12 @@ public sealed class CreatePPMPHandler(
         }
 
         var generalDescriptionAndObjective = itemRequest.GeneralDescriptionAndObjective.Trim();
-        var projectType = itemRequest.ProjectType.Trim();
+        var projectType = PPMPProjectTypes.Normalize(itemRequest.ProjectType);
 
         if (string.IsNullOrWhiteSpace(generalDescriptionAndObjective))
         {
             throw new InvalidOperationException(
                 "General description and objective are required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(projectType))
-        {
-            throw new InvalidOperationException(
-                "Project type is required.");
         }
 
         if (string.IsNullOrWhiteSpace(itemDescription) ||
@@ -228,7 +223,7 @@ public sealed class CreatePPMPHandler(
             itemRequest.SectionAllocations.Count == 0)
         {
             throw new InvalidOperationException(
-                $"Item '{itemDescription}' must have at least one section allocation.");
+                $"Item '{itemDescription}' must have at least one sub-unit allocation.");
         }
 
         if (itemRequest.SectionAllocations
@@ -236,7 +231,7 @@ public sealed class CreatePPMPHandler(
             .Any(group => group.Count() > 1))
         {
             throw new InvalidOperationException(
-                $"Item '{itemDescription}' contains duplicate section allocations.");
+                $"Item '{itemDescription}' contains duplicate sub-unit allocations.");
         }
 
         var allocationTotal = itemRequest.SectionAllocations.Sum(allocation => allocation.Quantity);
@@ -274,6 +269,13 @@ public sealed class CreatePPMPHandler(
             GeneralDescriptionAndObjective = generalDescriptionAndObjective,
             ProjectType = projectType,
             PreProcurementConference = itemRequest.PreProcurementConference,
+            RecommendedModeOfProcurement = itemRequest.RecommendedModeOfProcurement?.Trim() ?? string.Empty,
+            StartOfProcurementActivity = itemRequest.StartOfProcurementActivity?.Trim() ?? string.Empty,
+            EndOfProcurementActivity = itemRequest.EndOfProcurementActivity?.Trim() ?? string.Empty,
+            ExpectedDeliveryImplementationPeriod =
+                itemRequest.ExpectedDeliveryImplementationPeriod?.Trim() ?? string.Empty,
+            SourceOfFunds = itemRequest.SourceOfFunds?.Trim() ?? string.Empty,
+            AttachedSupportingDocuments = itemRequest.AttachedSupportingDocuments?.Trim() ?? string.Empty,
             Quantity = itemRequest.Quantity,
             UnitPrice = itemRequest.UnitPrice,
             EstimatedBudget = itemBudget

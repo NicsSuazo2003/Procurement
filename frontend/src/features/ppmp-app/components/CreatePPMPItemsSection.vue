@@ -46,6 +46,7 @@ type ItemsViewModel = Pick<
   | 'startEditingItem'
   | 'toggleAllocationRow'
   | 'updateItemField'
+  | 'updateItemPlanningFields'
   | 'updateQuantityFromAllocations'
 >
 

@@ -26,6 +26,11 @@ const {
   getProjectType,
   currentUserName,
 } = props.viewModel
+
+function formatMonth(month: string): string {
+  const match = /^(\d{4})-(\d{2})$/.exec(month)
+  return match ? `${match[2]}/${match[1]}` : month || '—'
+}
 </script>
 
 <template>
@@ -174,7 +179,7 @@ const {
                 {{ getDescription(item) }}
               </div>
               <div class="ppmp-item-spec">
-                Section allocations:
+                Sub-Unit allocations:
                 <span
                   v-for="(allocation, allocationIndex) in item.sectionAllocations"
                   :key="allocation.sectionId"
@@ -203,22 +208,34 @@ const {
               {{ formatCurrency(item.unitPrice) }}
             </td>
 
-            <td class="ppmp-cell ppmp-cell--center ppmp-cell--muted">—</td>
+            <td class="ppmp-cell ppmp-cell--center">
+              {{ item.recommendedModeOfProcurement || '—' }}
+            </td>
 
             <td class="ppmp-cell ppmp-cell--center">
               {{ item.preProcurementConference === true ? 'Yes' : 'No' }}
             </td>
 
-            <td class="ppmp-cell ppmp-cell--center ppmp-cell--muted">—</td>
-            <td class="ppmp-cell ppmp-cell--center ppmp-cell--muted">—</td>
-            <td class="ppmp-cell ppmp-cell--center ppmp-cell--muted">—</td>
-            <td class="ppmp-cell ppmp-cell--center ppmp-cell--muted">—</td>
+            <td class="ppmp-cell ppmp-cell--center">
+              {{ formatMonth(item.startOfProcurementActivity) }}
+            </td>
+            <td class="ppmp-cell ppmp-cell--center">
+              {{ formatMonth(item.endOfProcurementActivity) }}
+            </td>
+            <td class="ppmp-cell ppmp-cell--center">
+              {{ item.expectedDeliveryImplementationPeriod || '—' }}
+            </td>
+            <td class="ppmp-cell ppmp-cell--center">
+              {{ item.sourceOfFunds || '—' }}
+            </td>
 
             <td class="ppmp-cell ppmp-cell--right ppmp-cell--budget">
               {{ formatCurrency(item.quantity * item.unitPrice) }}
             </td>
 
-            <td class="ppmp-cell ppmp-cell--center ppmp-cell--muted">—</td>
+            <td class="ppmp-cell ppmp-cell--center">
+              {{ item.attachedSupportingDocuments || '—' }}
+            </td>
             <td class="ppmp-cell ppmp-cell--center">{{ item.category }}</td>
           </tr>
 

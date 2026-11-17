@@ -32,7 +32,7 @@ const REVIEW_STATUSES: ReviewStatus[] = [
 ]
 
 const searchQuery = ref('')
-const selectedDepartment = ref('All Departments')
+const selectedDepartment = ref('All Units')
 const selectedStatus = ref('All Review Statuses')
 
 const page = ref(1)
@@ -62,7 +62,7 @@ const statuses = [
 ]
 
 const departments = computed(() => [
-  'All Departments',
+  'All Units',
   ...new Set(ppmpRecords.value.map(record => record.departmentName)),
 ])
 
@@ -120,7 +120,7 @@ async function loadRecords() {
 
 onMounted(loadRecords)
 
-// Client-side search + department filter, applied to the page.
+// Client-side search + unit filter, applied to the page.
 const filteredRecords = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
 
@@ -131,7 +131,7 @@ const filteredRecords = computed(() => {
       record.departmentName.toLowerCase().includes(query)
 
     const matchesDepartment =
-      selectedDepartment.value === 'All Departments' ||
+      selectedDepartment.value === 'All Units' ||
       record.departmentName === selectedDepartment.value
 
     return matchesSearch && matchesDepartment
@@ -428,7 +428,7 @@ async function completeReview(record: PPMPListApi) {
           <thead class="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
               <th class="whitespace-nowrap px-4 py-3 font-semibold">Reference No.</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Department</th>
+              <th class="whitespace-nowrap px-4 py-3 font-semibold">Unit</th>
               <th class="whitespace-nowrap px-4 py-3 font-semibold">Planning Year</th>
               <th class="whitespace-nowrap px-4 py-3 font-semibold">Items</th>
               <th class="whitespace-nowrap px-4 py-3 font-semibold">Estimated Budget</th>

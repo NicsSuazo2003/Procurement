@@ -14,6 +14,13 @@ import {
 
 import { apiRequest } from '@/services/api'
 import { ppmpApiService } from '../services/ppmpApiService'
+import PPMPPlanningFieldsForm from '../components/PPMPPlanningFieldsForm.vue'
+import PPMPProjectTypeField from '../components/PPMPProjectTypeField.vue'
+import {
+  getPPMPTemplateDefaults,
+  isPPMPProjectType,
+  normalizePPMPProjectType,
+} from '../models/ppmp-template.defaults'
 
 import type {
   PPMPDetailApi,
@@ -148,7 +155,7 @@ async function loadPPMP() {
 
     if (sections.value.length === 0) {
       throw new Error(
-        'No active department sections were found. Please configure the department sections first.',
+        'No active sub-units were found. Please configure the units and sub-units first.',
       )
     }
 
@@ -175,6 +182,7 @@ async function loadPPMP() {
     ppmp.value = record
 
     items.value = record.items.map((item, index) => {
+      const defaults = getPPMPTemplateDefaults(item.categoryName)
       const generalDescription =
         item.generalDescriptionAndObjective?.trim() ||
         item.itemDescription ||
@@ -200,9 +208,21 @@ async function loadPPMP() {
 
         // Official PPMP fields.
         generalDescriptionAndObjective: generalDescription,
-        projectType,
+        projectType: normalizePPMPProjectType(projectType),
         preProcurementConference:
           item.preProcurementConference ?? null,
+        recommendedModeOfProcurement:
+          item.recommendedModeOfProcurement || defaults.recommendedModeOfProcurement,
+        startOfProcurementActivity:
+          item.startOfProcurementActivity || defaults.startOfProcurementActivity,
+        endOfProcurementActivity:
+          item.endOfProcurementActivity || defaults.endOfProcurementActivity,
+        expectedDeliveryImplementationPeriod:
+          item.expectedDeliveryImplementationPeriod ||
+          defaults.expectedDeliveryImplementationPeriod,
+        sourceOfFunds: item.sourceOfFunds || defaults.sourceOfFunds,
+        attachedSupportingDocuments:
+          item.attachedSupportingDocuments || defaults.attachedSupportingDocuments,
 
         unit: item.unit,
         unitPrice: item.unitPrice,
@@ -251,6 +271,8 @@ function addItem() {
     return
   }
 
+  const defaults = getPPMPTemplateDefaults(assignedCategory.categoryName)
+
   items.value.push({
     lineId: Date.now(),
     ppmpItemId: null,
@@ -266,8 +288,9 @@ function addItem() {
     specifications: '',
 
     generalDescriptionAndObjective: selectedItem.itemName,
-    projectType: '',
+    projectType: 'Goods',
     preProcurementConference: null,
+    ...defaults,
 
     unit: selectedItem.unit,
     unitPrice: 0,
@@ -303,14 +326,29 @@ function validateForm(): boolean {
     return false
   }
 
+  const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/
+
   for (const item of items.value) {
     if (
       !item.generalDescriptionAndObjective.trim() ||
-      !item.projectType.trim() ||
+      !isPPMPProjectType(item.projectType) ||
       !item.unit.trim()
     ) {
       errorMessage.value =
-        'Please complete the general description, project type, and unit of issue for every item.'
+        'Please complete the general description, choose a valid project type, and enter the unit of issue for every item.'
+      return false
+    }
+
+    if (
+      !item.recommendedModeOfProcurement.trim() ||
+      !monthPattern.test(item.startOfProcurementActivity) ||
+      !monthPattern.test(item.endOfProcurementActivity) ||
+      item.endOfProcurementActivity < item.startOfProcurementActivity ||
+      !item.expectedDeliveryImplementationPeriod.trim() ||
+      !item.sourceOfFunds.trim()
+    ) {
+      errorMessage.value =
+        `Please complete the procurement mode, activity dates, delivery period, and source of funds for ${item.generalDescriptionAndObjective}.`
       return false
     }
 
@@ -404,6 +442,13 @@ function buildUpdateRequest(): UpdatePPMPRequest {
       generalDescriptionAndObjective: generalDescription,
       projectType,
       preProcurementConference: item.preProcurementConference === true,
+      recommendedModeOfProcurement: item.recommendedModeOfProcurement.trim(),
+      startOfProcurementActivity: item.startOfProcurementActivity,
+      endOfProcurementActivity: item.endOfProcurementActivity,
+      expectedDeliveryImplementationPeriod:
+        item.expectedDeliveryImplementationPeriod.trim(),
+      sourceOfFunds: item.sourceOfFunds.trim(),
+      attachedSupportingDocuments: item.attachedSupportingDocuments.trim(),
 
       quantity,
       unitPrice: Number(item.unitPrice),
@@ -536,7 +581,7 @@ function cancelEditing() {
             </h2>
 
             <p class="mt-1 text-xs text-slate-500">
-              Submitted department information.
+              Submitted unit information.
             </p>
           </div>
 
@@ -554,7 +599,7 @@ function cancelEditing() {
           </div>
 
           <div>
-            <p class="text-xs text-slate-500">Department</p>
+            <p class="text-xs text-slate-500">Unit</p>
             <p class="mt-1 font-semibold text-slate-900">
               {{ ppmp.departmentName }}
             </p>
@@ -630,11 +675,11 @@ function cancelEditing() {
         <div class="flex flex-col gap-2 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 class="font-semibold text-slate-900">
-              PPMP Items and Section Allocations
+              PPMP Items and Sub-Unit Allocations
             </h2>
 
             <p class="mt-1 text-xs text-slate-500">
-              Update the official PPMP item details and distribute quantities across department sections.
+              Update the official PPMP item details and distribute quantities across sub-units.
             </p>
           </div>
 
@@ -716,12 +761,9 @@ function cancelEditing() {
                     <span class="text-red-600">*</span>
                   </label>
 
-                  <input
+                  <PPMPProjectTypeField
                     v-model="item.projectType"
-                    type="text"
-                    maxlength="100"
-                    placeholder="Enter project type (e.g. Goods)"
-                    class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-emerald-600"
+                    :disabled="!canEdit || isSaving"
                   />
                 </div>
 
@@ -783,14 +825,20 @@ function cancelEditing() {
               </div>
             </div>
 
+            <PPMPPlanningFieldsForm
+              :model-value="item"
+              :disabled="!canEdit || isSaving"
+              @update:model-value="Object.assign(item, $event)"
+            />
+
             <!-- SECTION ALLOCATIONS -->
             <div class="mt-5">
               <h3 class="text-sm font-semibold text-slate-800">
-                Section Quantity Allocation
+                Sub-Unit Quantity Allocation
               </h3>
 
               <p class="mt-1 text-xs text-slate-500">
-                Enter the quantity required by each section. The total quantity is calculated from these allocations.
+                Enter the quantity required by each sub-unit. The total quantity is calculated from these allocations.
               </p>
 
               <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

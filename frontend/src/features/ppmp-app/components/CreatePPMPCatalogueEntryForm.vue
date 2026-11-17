@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Search, Plus, Trash2 } from '@lucide/vue'
 
+import PPMPPlanningFieldsForm from './PPMPPlanningFieldsForm.vue'
+import PPMPProjectTypeField from './PPMPProjectTypeField.vue'
 import type { PlanningYearCategoryDto } from '../models/master-data.types'
 import type { CreatePPMPViewModel } from '../viewmodels/useCreatePPMPViewModel'
 
@@ -128,11 +130,8 @@ const { activeCategory } = props
           <label class="mb-1 block text-xs font-semibold text-slate-600">
             Type of the Project to be Procured <span class="text-red-500">*</span>
           </label>
-          <input
+          <PPMPProjectTypeField
             v-model="getCatalogueItemDraft(activeCategory.categoryId).projectType"
-            type="text"
-            maxlength="100"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
             :disabled="isSaving"
           />
         </div>
@@ -177,10 +176,16 @@ const { activeCategory } = props
         </div>
       </div>
 
+      <PPMPPlanningFieldsForm
+        :model-value="getCatalogueItemDraft(activeCategory.categoryId)"
+        :disabled="isSaving"
+        @update:model-value="Object.assign(getCatalogueItemDraft(activeCategory.categoryId), $event)"
+      />
+
       <div class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
         <div class="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
           <div>
-            <h5 class="text-sm font-bold text-slate-800">Department Section Requirements</h5>
+            <h5 class="text-sm font-bold text-slate-800">Sub-Unit Requirements</h5>
             <p class="mt-1 text-xs text-slate-500">
               Select sections that need this item and enter requested quantities.
             </p>
@@ -197,7 +202,7 @@ const { activeCategory } = props
         </div>
         <div class="mt-4">
           <label class="mb-1 block text-xs font-medium text-slate-500">
-            Add department section
+            Add sub-unit
           </label>
           <select
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"
@@ -209,7 +214,7 @@ const { activeCategory } = props
             "
             @change="addCatalogueDraftSection(activeCategory.categoryId, $event)"
           >
-            <option value="">Select a section...</option>
+            <option value="">Select a sub-unit...</option>
             <option
               v-for="section in getAvailableSections(
                 getCatalogueItemDraft(activeCategory.categoryId).sectionAllocations,

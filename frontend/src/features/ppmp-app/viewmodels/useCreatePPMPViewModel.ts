@@ -1,12 +1,17 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import type { PPMPItem } from '../models/ppmp.types'
+import type { PPMPItem, PPMPPlanningFields } from '../models/ppmp.types'
 import type {
   PlanningYearCategoryDto,
   DepartmentSectionDto,
   PlanningYearCatalogueItemDto,
 } from '../models/master-data.types'
 import type { CreatePPMPRequest } from '../models/ppmp-api.types'
+import {
+  getPPMPTemplateDefaults,
+  isPPMPProjectType,
+  normalizePPMPProjectType,
+} from '../models/ppmp-template.defaults'
 
 import { useAuthStore } from '@/stores/auth'
 import { ppmpApiService } from '../services/ppmpApiService'
@@ -25,6 +30,12 @@ interface ManualItemDraft {
   generalDescriptionAndObjective: string
   projectType: string
   preProcurementConference: boolean | null
+  recommendedModeOfProcurement: string
+  startOfProcurementActivity: string
+  endOfProcurementActivity: string
+  expectedDeliveryImplementationPeriod: string
+  sourceOfFunds: string
+  attachedSupportingDocuments: string
   unit: string
   unitPrice: number
   sectionAllocations: SectionAllocationDraft[]
@@ -48,7 +59,14 @@ export function useCreatePPMPViewModel() {
     await router.push('/ppmp')
   }
 
-  const { form, errors, isSaving, estimatedBudget, addItem: addFormItem } = usePPMPFormViewModel()
+  const {
+    form,
+    errors,
+    isSaving,
+    estimatedBudget,
+    addItem: addFormItem,
+    updateItem: updateFormItem,
+  } = usePPMPFormViewModel()
 
   const {
     departments,
@@ -105,23 +123,30 @@ export function useCreatePPMPViewModel() {
 
   const activeSections = computed(() => sections.value.filter((section) => section.isActive))
 
-  function createEmptyDraft(): ManualItemDraft {
+  function getCategoryName(categoryId: number): string {
+    return activeCategories.value.find((category) => category.categoryId === categoryId)
+      ?.categoryName ?? ''
+  }
+
+  function createEmptyDraft(categoryId: number): ManualItemDraft {
     return {
       generalDescriptionAndObjective: '',
-      projectType: '',
+      projectType: 'Goods',
       preProcurementConference: null,
+      ...getPPMPTemplateDefaults(getCategoryName(categoryId)),
       unit: '',
       unitPrice: 0,
       sectionAllocations: [],
     }
   }
 
-  function createEmptyCatalogueDraft(): CatalogueItemDraft {
+  function createEmptyCatalogueDraft(categoryId: number): CatalogueItemDraft {
     return {
       catalogueItemId: null,
       generalDescriptionAndObjective: '',
-      projectType: '',
+      projectType: 'Goods',
       preProcurementConference: null,
+      ...getPPMPTemplateDefaults(getCategoryName(categoryId)),
       unit: '',
       unitPrice: 0,
       sectionAllocations: [],
@@ -130,7 +155,7 @@ export function useCreatePPMPViewModel() {
 
   function getCatalogueItemDraft(categoryId: number): CatalogueItemDraft {
     if (!catalogueItemDrafts.value[categoryId]) {
-      catalogueItemDrafts.value[categoryId] = createEmptyCatalogueDraft()
+      catalogueItemDrafts.value[categoryId] = createEmptyCatalogueDraft(categoryId)
     }
 
     return catalogueItemDrafts.value[categoryId]!
@@ -138,14 +163,14 @@ export function useCreatePPMPViewModel() {
 
   function getItemDraft(categoryId: number): ManualItemDraft {
     if (!itemDrafts.value[categoryId]) {
-      itemDrafts.value[categoryId] = createEmptyDraft()
+      itemDrafts.value[categoryId] = createEmptyDraft(categoryId)
     }
 
     return itemDrafts.value[categoryId]!
   }
 
   function resetItemDraft(categoryId: number): void {
-    itemDrafts.value[categoryId] = createEmptyDraft()
+    itemDrafts.value[categoryId] = createEmptyDraft(categoryId)
   }
 
   async function selectCategoryTab(categoryId: number): Promise<void> {
@@ -210,7 +235,7 @@ export function useCreatePPMPViewModel() {
     draft.generalDescriptionAndObjective = catalogueItem.itemName
     draft.unit = catalogueItem.unit
     draft.unitPrice = catalogueItem.abcPerUnit
-    draft.projectType = catalogueItem.itemType ?? ''
+    draft.projectType = 'Goods'
     pageError.value = ''
   }
 
@@ -284,6 +309,12 @@ export function useCreatePPMPViewModel() {
       generalDescriptionAndObjective: draft.generalDescriptionAndObjective.trim(),
       projectType: draft.projectType.trim(),
       preProcurementConference: draft.preProcurementConference,
+      recommendedModeOfProcurement: draft.recommendedModeOfProcurement.trim(),
+      startOfProcurementActivity: draft.startOfProcurementActivity,
+      endOfProcurementActivity: draft.endOfProcurementActivity,
+      expectedDeliveryImplementationPeriod: draft.expectedDeliveryImplementationPeriod.trim(),
+      sourceOfFunds: draft.sourceOfFunds.trim(),
+      attachedSupportingDocuments: draft.attachedSupportingDocuments.trim(),
       quantity,
       unitPrice: Number(draft.unitPrice),
       sectionAllocations: draft.sectionAllocations.map((allocation) => ({
@@ -292,7 +323,7 @@ export function useCreatePPMPViewModel() {
       })),
     })
 
-    catalogueItemDrafts.value[category.categoryId] = createEmptyCatalogueDraft()
+    catalogueItemDrafts.value[category.categoryId] = createEmptyCatalogueDraft(category.categoryId)
     catalogueSearch.value = ''
     errors.value = []
   }
@@ -455,7 +486,12 @@ export function useCreatePPMPViewModel() {
       generalDescriptionAndObjective: draft.generalDescriptionAndObjective.trim(),
       projectType: draft.projectType.trim(),
       preProcurementConference: draft.preProcurementConference,
-
+      recommendedModeOfProcurement: draft.recommendedModeOfProcurement.trim(),
+      startOfProcurementActivity: draft.startOfProcurementActivity,
+      endOfProcurementActivity: draft.endOfProcurementActivity,
+      expectedDeliveryImplementationPeriod: draft.expectedDeliveryImplementationPeriod.trim(),
+      sourceOfFunds: draft.sourceOfFunds.trim(),
+      attachedSupportingDocuments: draft.attachedSupportingDocuments.trim(),
       quantity,
       unitPrice: Number(draft.unitPrice),
 
@@ -522,6 +558,10 @@ export function useCreatePPMPViewModel() {
     if (field === 'unit') {
       item.unit = String(value ?? '')
     }
+  }
+
+  function updateItemPlanningFields(item: PPMPItem, fields: PPMPPlanningFields): void {
+    updateFormItem(item.lineId, fields)
   }
 
   function addItemSection(item: PPMPItem, event: Event): void {
@@ -613,8 +653,9 @@ export function useCreatePPMPViewModel() {
         return false
       }
 
-      if (!projectType.trim()) {
-        pageError.value = `Item ${index + 1}: Type of project is required.`
+      if (!isPPMPProjectType(projectType.trim())) {
+        pageError.value =
+          `Item ${index + 1}: Type of project must be Goods, Infrastructure, or Consulting Services.`
         return false
       }
 
@@ -635,6 +676,46 @@ export function useCreatePPMPViewModel() {
 
       if (!Number.isFinite(Number(item.unitPrice)) || Number(item.unitPrice) < 0) {
         pageError.value = `Item ${index + 1}: ABC per unit must be a valid non-negative amount.`
+        return false
+      }
+    }
+
+    return true
+  }
+
+  function validateSubmissionFields(): boolean {
+    const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/
+
+    for (let index = 0; index < selectedItems.value.length; index++) {
+      const item = selectedItems.value[index]!
+
+      if (!item.recommendedModeOfProcurement.trim()) {
+        pageError.value = `Item ${index + 1}: Recommended mode of procurement is required.`
+        return false
+      }
+
+      if (!monthPattern.test(item.startOfProcurementActivity)) {
+        pageError.value = `Item ${index + 1}: Enter a valid start month for procurement activity.`
+        return false
+      }
+
+      if (!monthPattern.test(item.endOfProcurementActivity)) {
+        pageError.value = `Item ${index + 1}: Enter a valid end month for procurement activity.`
+        return false
+      }
+
+      if (item.endOfProcurementActivity < item.startOfProcurementActivity) {
+        pageError.value = `Item ${index + 1}: Procurement activity cannot end before it starts.`
+        return false
+      }
+
+      if (!item.expectedDeliveryImplementationPeriod.trim()) {
+        pageError.value = `Item ${index + 1}: Expected delivery or implementation period is required.`
+        return false
+      }
+
+      if (!item.sourceOfFunds.trim()) {
+        pageError.value = `Item ${index + 1}: Source of funds is required.`
         return false
       }
     }
@@ -818,7 +899,7 @@ export function useCreatePPMPViewModel() {
 
         const description = item.generalDescriptionAndObjective ?? item.name
 
-        const projectType = item.projectType ?? item.itemType ?? ''
+        const projectType = normalizePPMPProjectType(item.projectType ?? item.itemType)
 
         return {
           itemId: item.catalogItemId,
@@ -836,6 +917,13 @@ export function useCreatePPMPViewModel() {
           generalDescriptionAndObjective: description.trim(),
           projectType: projectType.trim(),
           preProcurementConference: item.preProcurementConference === true,
+          recommendedModeOfProcurement: item.recommendedModeOfProcurement.trim(),
+          startOfProcurementActivity: item.startOfProcurementActivity,
+          endOfProcurementActivity: item.endOfProcurementActivity,
+          expectedDeliveryImplementationPeriod:
+            item.expectedDeliveryImplementationPeriod.trim(),
+          sourceOfFunds: item.sourceOfFunds.trim(),
+          attachedSupportingDocuments: item.attachedSupportingDocuments.trim(),
 
           quantity,
           unitPrice: Number(item.unitPrice),
@@ -867,6 +955,7 @@ export function useCreatePPMPViewModel() {
 
     if (!validateItems()) return
     if (!validateAllocations()) return
+    if (shouldSubmit && !validateSubmissionFields()) return
 
     if (
       shouldSubmit &&
@@ -919,7 +1008,7 @@ export function useCreatePPMPViewModel() {
   }
 
   function getProjectType(item: PPMPItem): string {
-    return item.projectType ?? item.itemType ?? ''
+    return normalizePPMPProjectType(item.projectType ?? item.itemType)
   }
 
   return {
@@ -980,6 +1069,7 @@ export function useCreatePPMPViewModel() {
     startEditingItem,
     toggleAllocationRow,
     updateItemField,
+    updateItemPlanningFields,
     updateQuantityFromAllocations,
   }
 }

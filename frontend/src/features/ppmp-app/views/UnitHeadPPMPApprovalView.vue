@@ -38,7 +38,7 @@ async function loadPPMPs(): Promise<void> {
   errorMessage.value = ''
 
   try {
-    // The backend already restricts Unit Heads to their department.
+    // The backend already restricts Unit Heads to their unit.
     ppmpRecords.value = await ppmpApiService.getAll()
   } catch (error) {
     console.error('Failed to load PPMP approvals:', error)
@@ -87,11 +87,11 @@ onMounted(loadPPMPs)
         </h1>
 
         <p class="mt-1 text-sm text-gray-500">
-          Review and approve Procurement Project Management Plans submitted by your department.
+          Review and approve Procurement Project Management Plans submitted by your unit.
         </p>
 
         <p class="mt-2 text-sm font-medium text-gray-700">
-          {{ authStore.user?.departmentName || 'Your Department' }}
+          {{ authStore.user?.departmentName || 'Your Unit' }}
         </p>
       </div>
 
@@ -197,7 +197,7 @@ onMounted(loadPPMPs)
           <thead class="bg-gray-50 text-xs uppercase text-gray-500">
             <tr>
               <th class="px-5 py-3 font-medium">PPMP Reference</th>
-              <th class="px-5 py-3 font-medium">Department</th>
+              <th class="px-5 py-3 font-medium">Unit</th>
               <th class="px-5 py-3 font-medium">Planning Year</th>
               <th class="px-5 py-3 font-medium">Date Submitted</th>
               <th class="px-5 py-3 text-right font-medium">Estimated Budget</th>

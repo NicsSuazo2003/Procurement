@@ -158,7 +158,7 @@ public sealed class ApprovePPMPHandlerTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             handler.Handle(new ApprovePPMPCommand(5, new ApprovePPMPRequest(), 12, 7)));
 
-        Assert.Equal("The approver does not belong to the PPMP department.", exception.Message);
+        Assert.Equal("The approver does not belong to the PPMP unit.", exception.Message);
         Assert.Equal(0, repository.SaveCount);
     }
 

@@ -232,13 +232,25 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                     b.Property<int>("ChangeHistoryId")
                         .HasColumnType("int");
 
+                    b.Property<string>("PreviousAttachedSupportingDocuments")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("PreviousDescription")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("PreviousEndOfProcurementActivity")
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
+
                     b.Property<decimal?>("PreviousEstimatedBudget")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("PreviousExpectedDeliveryImplementationPeriod")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PreviousGeneralDescriptionAndObjective")
                         .HasMaxLength(2000)
@@ -262,6 +274,18 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("PreviousRecommendedModeOfProcurement")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("PreviousSourceOfFunds")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PreviousStartOfProcurementActivity")
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
+
                     b.Property<string>("PreviousUnit")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -270,13 +294,25 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("UpdatedAttachedSupportingDocuments")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("UpdatedDescription")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("UpdatedEndOfProcurementActivity")
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
+
                     b.Property<decimal?>("UpdatedEstimatedBudget")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("UpdatedExpectedDeliveryImplementationPeriod")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("UpdatedGeneralDescriptionAndObjective")
                         .HasMaxLength(2000)
@@ -299,6 +335,18 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                     b.Property<decimal?>("UpdatedQuantity")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("UpdatedRecommendedModeOfProcurement")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("UpdatedSourceOfFunds")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("UpdatedStartOfProcurementActivity")
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
 
                     b.Property<string>("UpdatedUnit")
                         .HasMaxLength(50)
@@ -850,12 +898,27 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PPMPItemId"));
 
+                    b.Property<string>("AttachedSupportingDocuments")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
+
+                    b.Property<string>("EndOfProcurementActivity")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
 
                     b.Property<decimal>("EstimatedBudget")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ExpectedDeliveryImplementationPeriod")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("GeneralDescriptionAndObjective")
                         .IsRequired()
@@ -894,9 +957,24 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("RecommendedModeOfProcurement")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("SourceOfFunds")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("Specifications")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("StartOfProcurementActivity")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
 
                     b.Property<string>("Unit")
                         .IsRequired()

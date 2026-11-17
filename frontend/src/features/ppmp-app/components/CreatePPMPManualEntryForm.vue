@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Plus, Trash2 } from '@lucide/vue'
 
+import PPMPPlanningFieldsForm from './PPMPPlanningFieldsForm.vue'
+import PPMPProjectTypeField from './PPMPProjectTypeField.vue'
 import type { PlanningYearCategoryDto } from '../models/master-data.types'
 import type { CreatePPMPViewModel } from '../viewmodels/useCreatePPMPViewModel'
 
@@ -60,12 +62,8 @@ const { activeCategory } = props
           Type of the Project to be Procured
           <span class="text-red-500">*</span>
         </label>
-        <input
+        <PPMPProjectTypeField
           v-model="getItemDraft(activeCategory.categoryId).projectType"
-          type="text"
-          maxlength="100"
-          placeholder="e.g. Goods"
-          class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
           :disabled="isSaving"
         />
       </div>
@@ -115,11 +113,17 @@ const { activeCategory } = props
       </div>
     </div>
 
+    <PPMPPlanningFieldsForm
+      :model-value="getItemDraft(activeCategory.categoryId)"
+      :disabled="isSaving"
+      @update:model-value="Object.assign(getItemDraft(activeCategory.categoryId), $event)"
+    />
+
     <!-- DRAFT SECTION ALLOCATION -->
     <div class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
       <div class="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
         <div>
-          <h5 class="text-sm font-bold text-slate-800">Department Section Requirements</h5>
+          <h5 class="text-sm font-bold text-slate-800">Sub-Unit Requirements</h5>
           <p class="mt-1 text-xs text-slate-500">
             Select each section that needs this procurement project and enter its requested
             quantity.
@@ -137,7 +141,7 @@ const { activeCategory } = props
 
       <div class="mt-4">
         <label class="mb-1 block text-xs font-semibold text-slate-600">
-          Add Department Section
+          Add Sub-Unit
         </label>
         <select
           class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
@@ -152,8 +156,8 @@ const { activeCategory } = props
             {{
               getAvailableSections(getItemDraft(activeCategory.categoryId).sectionAllocations)
                 .length
-                ? 'Select a department section'
-                : 'All available sections have been added'
+                ? 'Select a sub-unit'
+                : 'All available sub-units have been added'
             }}
           </option>
           <option
@@ -172,7 +176,7 @@ const { activeCategory } = props
         v-if="getItemDraft(activeCategory.categoryId).sectionAllocations.length === 0"
         class="mt-4 rounded-lg border border-dashed border-slate-300 bg-white px-4 py-6 text-center"
       >
-        <p class="text-sm font-medium text-slate-600">No department sections selected yet.</p>
+        <p class="text-sm font-medium text-slate-600">No sub-units selected yet.</p>
         <p class="mt-1 text-xs text-slate-500">
           Select a section above to begin allocating the requested quantity.
         </p>
@@ -188,7 +192,7 @@ const { activeCategory } = props
             <p class="text-sm font-semibold text-slate-800">
               {{ allocation.sectionName }}
             </p>
-            <p class="text-xs text-slate-500">Section ID: {{ allocation.sectionId }}</p>
+            <p class="text-xs text-slate-500">Sub-Unit ID: {{ allocation.sectionId }}</p>
           </div>
 
           <div>

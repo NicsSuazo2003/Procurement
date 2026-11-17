@@ -39,6 +39,24 @@ public class CreatePPMPItemRequest
 
     public bool PreProcurementConference { get; set; }
 
+    [StringLength(150)]
+    public string RecommendedModeOfProcurement { get; set; } = string.Empty;
+
+    [StringLength(7)]
+    public string StartOfProcurementActivity { get; set; } = string.Empty;
+
+    [StringLength(7)]
+    public string EndOfProcurementActivity { get; set; } = string.Empty;
+
+    [StringLength(100)]
+    public string ExpectedDeliveryImplementationPeriod { get; set; } = string.Empty;
+
+    [StringLength(100)]
+    public string SourceOfFunds { get; set; } = string.Empty;
+
+    [StringLength(500)]
+    public string AttachedSupportingDocuments { get; set; } = string.Empty;
+
     // Quantity and ABC
     [Range(typeof(decimal), "0.01", "9999999999999999")]
     public decimal Quantity { get; set; }

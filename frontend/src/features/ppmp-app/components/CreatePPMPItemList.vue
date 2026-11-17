@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { FileText, Pencil, ChevronDown, X, Trash2 } from '@lucide/vue'
 
+import PPMPPlanningFieldsForm from './PPMPPlanningFieldsForm.vue'
+import PPMPProjectTypeField from './PPMPProjectTypeField.vue'
 import type { PlanningYearCategoryDto } from '../models/master-data.types'
 import type { CreatePPMPViewModel } from '../viewmodels/useCreatePPMPViewModel'
 
@@ -24,6 +26,7 @@ type ItemListViewModel = Pick<
   | 'startEditingItem'
   | 'toggleAllocationRow'
   | 'updateItemField'
+  | 'updateItemPlanningFields'
   | 'updateQuantityFromAllocations'
 >
 
@@ -50,6 +53,7 @@ const {
   startEditingItem,
   toggleAllocationRow,
   updateItemField,
+  updateItemPlanningFields,
   updateQuantityFromAllocations,
 } = props.viewModel
 const { activeCategory } = props
@@ -169,7 +173,7 @@ const { activeCategory } = props
               class="transition-transform"
               :class="{ '-rotate-90': !expandedAllocationRows.includes(item.lineId) }"
             />
-            Sections
+            Sub-Units
           </button>
 
           <button
@@ -223,14 +227,9 @@ const { activeCategory } = props
             <label class="mb-1 block text-xs font-semibold text-slate-600">
               Type of the Project to be Procured
             </label>
-            <input
-              :value="getProjectType(item)"
-              type="text"
-              maxlength="100"
-              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-              @input="
-                updateItemField(item, 'projectType', ($event.target as HTMLInputElement).value)
-              "
+            <PPMPProjectTypeField
+              :model-value="getProjectType(item)"
+              @update:model-value="updateItemField(item, 'projectType', $event)"
             />
           </div>
 
@@ -291,10 +290,15 @@ const { activeCategory } = props
           </div>
         </div>
 
+        <PPMPPlanningFieldsForm
+          :model-value="item"
+          @update:model-value="updateItemPlanningFields(item, $event)"
+        />
+
         <div class="mt-4 rounded-lg border border-slate-200 bg-white p-4">
           <div class="mb-3 flex items-center justify-between">
             <div>
-              <h6 class="text-sm font-bold text-slate-800">Section Requirements</h6>
+              <h6 class="text-sm font-bold text-slate-800">Sub-Unit Requirements</h6>
               <p class="text-xs text-slate-500">
                 The total quantity is calculated from these section quantities.
               </p>
@@ -313,8 +317,8 @@ const { activeCategory } = props
             <option value="">
               {{
                 getAvailableSections(item.sectionAllocations ?? []).length
-                  ? 'Add another department section'
-                  : 'All available sections have been added'
+                  ? 'Add another sub-unit'
+                  : 'All available sub-units have been added'
               }}
             </option>
             <option
@@ -330,7 +334,7 @@ const { activeCategory } = props
             v-if="!item.sectionAllocations?.length"
             class="mt-3 rounded-lg border border-dashed border-slate-300 p-4 text-center text-sm text-slate-500"
           >
-            No sections allocated.
+            No sub-units allocated.
           </div>
 
           <div v-else class="mt-3 space-y-2">
@@ -387,7 +391,7 @@ const { activeCategory } = props
       >
         <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p class="text-base font-bold text-slate-800">
-            Section allocation — {{ getDescription(item) }}
+            Sub-unit allocation — {{ getDescription(item) }}
           </p>
           <span
             class="text-sm font-semibold"
@@ -403,7 +407,7 @@ const { activeCategory } = props
           v-if="!item.sectionAllocations?.length"
           class="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-center text-sm text-slate-500"
         >
-          No section allocations.
+          No sub-unit allocations.
         </div>
 
         <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

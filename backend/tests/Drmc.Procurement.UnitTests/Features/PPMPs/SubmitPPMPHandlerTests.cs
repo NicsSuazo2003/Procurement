@@ -16,7 +16,18 @@ public sealed class SubmitPPMPHandlerTests
             CreatedBy = 12,
             DepartmentId = 7,
             Status = "Draft",
-            Items = [new PPMPItem()]
+            Items =
+            [
+                new PPMPItem
+                {
+                    ItemDescription = "Monitor",
+                    RecommendedModeOfProcurement = "Public Bidding",
+                    StartOfProcurementActivity = "2026-10",
+                    EndOfProcurementActivity = "2027-01",
+                    ExpectedDeliveryImplementationPeriod = "April 2027",
+                    SourceOfFunds = "GAA"
+                }
+            ]
         };
         var repository = new FakePPMPRepository { PPMP = ppmp };
         var reader = new FakeReadRepository
@@ -91,6 +102,29 @@ public sealed class SubmitPPMPHandlerTests
 
         Assert.Equal(
             "A PPMP must contain at least one item before submission.",
+            exception.Message);
+        Assert.Equal(0, repository.SaveCount);
+    }
+
+    [Fact]
+    public async Task Handle_DraftWithMissingPlanningDetails_RejectsWithoutSaving()
+    {
+        var repository = new FakePPMPRepository
+        {
+            PPMP = new PPMP
+            {
+                PPMPId = 5,
+                Status = "Draft",
+                Items = [new PPMPItem { ItemDescription = "Monitor" }]
+            }
+        };
+        var handler = new SubmitPPMPHandler(repository, new FakeReadRepository());
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Handle(new SubmitPPMPCommand(Id: 5, UserId: 12, DepartmentId: 7)));
+
+        Assert.Equal(
+            "Item 'Monitor' must have a recommended mode of procurement.",
             exception.Message);
         Assert.Equal(0, repository.SaveCount);
     }

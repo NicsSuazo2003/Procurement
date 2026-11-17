@@ -45,7 +45,7 @@ onMounted(() => {
           <tr class="bg-gray-100">
             <th class="border p-3 text-left">Project Code</th>
             <th class="border p-3 text-left">Project Title</th>
-            <th class="border p-3 text-left">End User Department</th>
+            <th class="border p-3 text-left">End-User Unit</th>
             <th class="border p-3 text-left">Estimated Budget</th>
             <th class="border p-3 text-left">Status</th>
           </tr>

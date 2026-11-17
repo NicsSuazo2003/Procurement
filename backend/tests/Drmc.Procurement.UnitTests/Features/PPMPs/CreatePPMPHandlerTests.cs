@@ -60,6 +60,12 @@ public sealed class CreatePPMPHandlerTests
         Assert.Equal("24 inch", item.Specifications);
         Assert.Equal("For clinical workstations", item.GeneralDescriptionAndObjective);
         Assert.Equal("Goods", item.ProjectType);
+        Assert.Equal("Public Bidding", item.RecommendedModeOfProcurement);
+        Assert.Equal("2026-10", item.StartOfProcurementActivity);
+        Assert.Equal("2027-01", item.EndOfProcurementActivity);
+        Assert.Equal("April 2027", item.ExpectedDeliveryImplementationPeriod);
+        Assert.Equal("GAA", item.SourceOfFunds);
+        Assert.Equal("Purchase Request, Market Scoping", item.AttachedSupportingDocuments);
         Assert.Equal(2, allocation.Quantity);
         Assert.Equal(20, allocation.SectionId);
         Assert.Equal(cancellationSource.Token, writer.CancellationToken);
@@ -78,7 +84,7 @@ public sealed class CreatePPMPHandlerTests
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             handler.Handle(new CreatePPMPCommand(CreateRequest(), CreatedBy: 99, DepartmentId: 11)));
 
-        Assert.Equal("You can only create a PPMP for your own department.", exception.Message);
+        Assert.Equal("You can only create a PPMP for your own unit.", exception.Message);
         Assert.Equal(0, references.LookupCount);
         Assert.Null(writer.SavedPPMP);
     }
@@ -131,6 +137,12 @@ public sealed class CreatePPMPHandlerTests
                     Unit = "request unit",
                     GeneralDescriptionAndObjective = " For clinical workstations ",
                     ProjectType = " Goods ",
+                    RecommendedModeOfProcurement = " Public Bidding ",
+                    StartOfProcurementActivity = " 2026-10 ",
+                    EndOfProcurementActivity = " 2027-01 ",
+                    ExpectedDeliveryImplementationPeriod = " April 2027 ",
+                    SourceOfFunds = " GAA ",
+                    AttachedSupportingDocuments = " Purchase Request, Market Scoping ",
                     Quantity = 2,
                     UnitPrice = 12.5m,
                     SectionAllocations =

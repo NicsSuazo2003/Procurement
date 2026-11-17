@@ -42,6 +42,30 @@ public class PPMPItemConfiguration : IEntityTypeConfiguration<PPMPItem>
         builder.Property(i => i.PreProcurementConference)
             .IsRequired();
 
+        builder.Property(i => i.RecommendedModeOfProcurement)
+            .HasMaxLength(150)
+            .IsRequired();
+
+        builder.Property(i => i.StartOfProcurementActivity)
+            .HasMaxLength(7)
+            .IsRequired();
+
+        builder.Property(i => i.EndOfProcurementActivity)
+            .HasMaxLength(7)
+            .IsRequired();
+
+        builder.Property(i => i.ExpectedDeliveryImplementationPeriod)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.Property(i => i.SourceOfFunds)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.Property(i => i.AttachedSupportingDocuments)
+            .HasMaxLength(500)
+            .IsRequired();
+
         // Quantity and ABC
         builder.Property(i => i.Quantity)
             .HasPrecision(18, 2);

@@ -77,6 +77,7 @@ public sealed class UpdatePPMPHandlerTests
         Assert.Equal(3, historyItem.UpdatedQuantity);
         Assert.Equal("OLD-SEC", allocationSnapshot.PreviousSectionCode);
         Assert.Equal("NEW-SEC", allocationSnapshot.UpdatedSectionCode);
+        Assert.Equal("Public Bidding", historyItem.UpdatedRecommendedModeOfProcurement);
         Assert.Equal(1, repository.SaveCount);
         Assert.Contains(oldAllocation, repository.RemovedAllocations);
         Assert.Equal(cancellationSource.Token, repository.CancellationToken);
@@ -95,6 +96,11 @@ public sealed class UpdatePPMPHandlerTests
             Unit = "piece",
             GeneralDescriptionAndObjective = "Objective",
             ProjectType = "Goods",
+            RecommendedModeOfProcurement = "Public Bidding",
+            StartOfProcurementActivity = "2026-10",
+            EndOfProcurementActivity = "2027-01",
+            ExpectedDeliveryImplementationPeriod = "April 2027",
+            SourceOfFunds = "GAA",
             Quantity = 2,
             UnitPrice = 10,
             EstimatedBudget = 20,
@@ -149,6 +155,11 @@ public sealed class UpdatePPMPHandlerTests
                     Unit = "piece",
                     GeneralDescriptionAndObjective = "Objective",
                     ProjectType = "Goods",
+                    RecommendedModeOfProcurement = "Public Bidding",
+                    StartOfProcurementActivity = "2026-10",
+                    EndOfProcurementActivity = "2027-01",
+                    ExpectedDeliveryImplementationPeriod = "April 2027",
+                    SourceOfFunds = "GAA",
                     Quantity = 2,
                     UnitPrice = 10,
                     SectionAllocations = [new UpdatePPMPSectionAllocationRequest { SectionId = 2, Quantity = 2 }]
@@ -201,6 +212,11 @@ public sealed class UpdatePPMPHandlerTests
                     Unit = "piece",
                     GeneralDescriptionAndObjective = "New objective",
                     ProjectType = "Goods",
+                    RecommendedModeOfProcurement = "Public Bidding",
+                    StartOfProcurementActivity = "2026-10",
+                    EndOfProcurementActivity = "2027-01",
+                    ExpectedDeliveryImplementationPeriod = "April 2027",
+                    SourceOfFunds = "GAA",
                     Quantity = quantity,
                     UnitPrice = 10,
                     SectionAllocations =

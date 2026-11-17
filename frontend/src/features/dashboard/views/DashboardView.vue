@@ -256,7 +256,7 @@ onMounted(loadDashboardData)
           <thead class="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
               <th class="px-5 py-3 font-medium">PPMP Reference</th>
-              <th class="px-5 py-3 font-medium">Department</th>
+              <th class="px-5 py-3 font-medium">Unit</th>
               <th class="px-5 py-3 font-medium">Planning Year</th>
               <th class="px-5 py-3 font-medium">Items</th>
               <th class="px-5 py-3 font-medium">Estimated Budget</th>

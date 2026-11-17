@@ -24,7 +24,7 @@ const authStore = useAuthStore()
 
 // Filters
 const searchQuery = ref('')
-const selectedDepartment = ref('All Departments')
+const selectedDepartment = ref('All Units')
 const selectedStatus = ref('All Statuses')
 
 // Page state
@@ -73,7 +73,7 @@ const statuses: Array<'All Statuses' | PPMPStatus> = [
   'Included in APP',
 ]
 
-// Department options are based on records on the current page.
+// Unit options are based on records on the current page.
 const departments = computed(() => {
   const departmentNames = [
     ...new Set(
@@ -81,7 +81,7 @@ const departments = computed(() => {
     ),
   ].sort((a, b) => a.localeCompare(b))
 
-  return ['All Departments', ...departmentNames]
+  return ['All Units', ...departmentNames]
 })
 
 function mapApiRecord(record: PPMPListApi): PPMPListRecord {
@@ -131,10 +131,10 @@ async function loadRecords(): Promise<void> {
     totalPages.value = response.totalPages
 
     if (
-      selectedDepartment.value !== 'All Departments' &&
+      selectedDepartment.value !== 'All Units' &&
       !departments.value.includes(selectedDepartment.value)
     ) {
-      selectedDepartment.value = 'All Departments'
+      selectedDepartment.value = 'All Units'
     }
   } catch (error) {
     console.error('Unable to load PPMP records:', error)
@@ -173,7 +173,7 @@ const filteredRecords = computed(() => {
 
     const matchesDepartment =
       !canViewAllDepartments.value ||
-      selectedDepartment.value === 'All Departments' ||
+      selectedDepartment.value === 'All Units' ||
       record.department === selectedDepartment.value
 
     return matchesSearch && matchesDepartment
@@ -361,7 +361,7 @@ function formatDate(value: string): string {
           <thead class="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
               <th class="whitespace-nowrap px-4 py-3 font-semibold">Reference No.</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Department</th>
+              <th class="whitespace-nowrap px-4 py-3 font-semibold">Unit</th>
               <th class="whitespace-nowrap px-4 py-3 font-semibold">Planning Year</th>
               <th class="whitespace-nowrap px-4 py-3 font-semibold">Items</th>
               <th class="whitespace-nowrap px-4 py-3 font-semibold">Estimated Budget</th>

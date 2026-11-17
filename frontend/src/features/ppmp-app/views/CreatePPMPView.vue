@@ -48,7 +48,7 @@ const {
           </h1>
           <p class="mt-1 text-sm text-slate-500">
             Encode proposed procurement projects and allocate each item's requested quantity to your
-            department sections.
+            sub-units.
           </p>
         </div>
 
@@ -111,7 +111,7 @@ const {
           <div class="flex items-end">
             <div class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
               <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Department
+                Unit
               </p>
               <p class="mt-1 text-sm font-semibold text-slate-800">
                 {{ currentDepartment?.departmentName ?? form.department ?? 'Not assigned' }}

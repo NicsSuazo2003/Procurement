@@ -128,7 +128,7 @@ onMounted(() => {
         </div>
 
         <p class="mt-1 text-sm text-slate-500">
-          Review PPMP submissions from your department and approve them before
+          Review PPMP submissions from your unit and approve them before
           they proceed to Procurement.
         </p>
       </div>
@@ -239,7 +239,7 @@ onMounted(() => {
           <thead class="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
               <th class="whitespace-nowrap px-4 py-3 font-semibold">Reference No.</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Department</th>
+              <th class="whitespace-nowrap px-4 py-3 font-semibold">Unit</th>
               <th class="whitespace-nowrap px-4 py-3 font-semibold">Planning Year</th>
               <th class="whitespace-nowrap px-4 py-3 font-semibold">Items</th>
               <th class="whitespace-nowrap px-4 py-3 font-semibold">Estimated Budget</th>
@@ -308,7 +308,7 @@ onMounted(() => {
                 </p>
 
                 <p class="mt-1 text-xs text-slate-500">
-                  PPMPs submitted by End-user Departments will appear here.
+                  PPMPs submitted by end-user units will appear here.
                 </p>
               </td>
             </tr>

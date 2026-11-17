@@ -44,7 +44,7 @@ public sealed class ApprovePPMPHandler(
         if (approver.DepartmentId != ppmp.DepartmentId)
         {
             throw new InvalidOperationException(
-                "The approver does not belong to the PPMP department.");
+                "The approver does not belong to the PPMP unit.");
         }
 
         ppmpRepository.AddApproval(new PPMPApproval
