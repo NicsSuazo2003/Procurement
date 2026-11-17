@@ -18,7 +18,7 @@ public class APPItemConfiguration : IEntityTypeConfiguration<APPItem>
             .IsRequired();
 
         builder.Property(i => i.ItemDescription)
-            .HasMaxLength(500)
+            .HasMaxLength(2000)
             .IsRequired();
 
         builder.Property(i => i.ItemType)

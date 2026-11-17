@@ -251,6 +251,16 @@ onUnmounted(() => {
 
         <RouterLink
           v-if="isProcurementOrAdmin"
+          to="/app"
+          class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
+          active-class="bg-emerald-50 text-emerald-700"
+        >
+          <ClipboardList :size="19" />
+          Annual Procurement Plans
+        </RouterLink>
+
+        <RouterLink
+          v-if="isProcurementOrAdmin"
           to="/procurement-review"
           class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700"
           active-class="bg-emerald-50 text-emerald-700"

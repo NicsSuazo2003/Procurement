@@ -19,7 +19,7 @@ public class PPMPChangeHistoryItemConfiguration
             .HasMaxLength(100);
 
         builder.Property(i => i.PreviousDescription)
-            .HasMaxLength(500);
+            .HasMaxLength(2000);
 
         builder.Property(i => i.PreviousUnit)
             .HasMaxLength(50);
@@ -66,7 +66,7 @@ public class PPMPChangeHistoryItemConfiguration
             .HasMaxLength(100);
 
         builder.Property(i => i.UpdatedDescription)
-            .HasMaxLength(500);
+            .HasMaxLength(2000);
 
         builder.Property(i => i.UpdatedUnit)
             .HasMaxLength(50);

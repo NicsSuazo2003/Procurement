@@ -17,7 +17,7 @@ public class PPMPItemConfiguration : IEntityTypeConfiguration<PPMPItem>
             .HasMaxLength(100);
 
         builder.Property(i => i.ItemDescription)
-            .HasMaxLength(500)
+            .HasMaxLength(2000)
             .IsRequired();
 
         builder.Property(i => i.ItemType)

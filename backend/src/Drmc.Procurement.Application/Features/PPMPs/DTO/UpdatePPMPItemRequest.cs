@@ -18,7 +18,7 @@ public class UpdatePPMPItemRequest
     public string ItemCode { get; set; } = string.Empty;
 
     [Required]
-    [StringLength(500)]
+    [StringLength(2000)]
     public string ItemDescription { get; set; } = string.Empty;
 
     [StringLength(100)]

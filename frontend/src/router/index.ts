@@ -14,6 +14,7 @@ import ProcurementPPMPReviewView from '@/features/ppmp-app/views/ProcurementPPMP
 import ProcurementEditPPMPView from '@/features/ppmp-app/views/ProcurementEditPPMPView.vue'
 import UnitHeadApprovalQueueView from '@/features/ppmp-app/views/UnitHeadApprovalQueueView.vue'
 import ManagePreferredCategoriesView from '@/features/ppmp-app/views/ManagePreferredCategoriesView.vue'
+import APPManagementView from '@/features/app-planning/views/APPManagementView.vue'
 
 import { useAuthStore } from '@/stores/auth'
 
@@ -86,6 +87,22 @@ const router = createRouter({
           path: 'procurement-projects',
           name: 'procurement-projects',
           component: ProcurementProjectsView,
+          meta: {
+            roles: ['Procurement Staff', 'System Administrator'],
+          },
+        },
+        {
+          path: 'app',
+          name: 'app-management',
+          component: APPManagementView,
+          meta: {
+            roles: ['Procurement Staff', 'System Administrator'],
+          },
+        },
+        {
+          path: 'app/:id',
+          name: 'app-detail',
+          component: APPManagementView,
           meta: {
             roles: ['Procurement Staff', 'System Administrator'],
           },

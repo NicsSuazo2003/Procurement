@@ -118,8 +118,8 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("ItemDescription")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<int?>("ItemId")
                         .HasColumnType("int");
@@ -237,8 +237,8 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("PreviousDescription")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<string>("PreviousEndOfProcurementActivity")
                         .HasMaxLength(7)
@@ -299,8 +299,8 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("UpdatedDescription")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<string>("UpdatedEndOfProcurementActivity")
                         .HasMaxLength(7)
@@ -932,8 +932,8 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("ItemDescription")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<int?>("ItemId")
                         .HasColumnType("int");
