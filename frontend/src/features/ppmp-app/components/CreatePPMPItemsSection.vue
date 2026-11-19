@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import CreatePPMPCatalogueEntryForm from './CreatePPMPCatalogueEntryForm.vue'
 import CreatePPMPManualEntryForm from './CreatePPMPManualEntryForm.vue'
 import CreatePPMPItemList from './CreatePPMPItemList.vue'
 
@@ -10,37 +9,27 @@ type ItemsViewModel = Pick<
   | 'activeCategories'
   | 'activeCategory'
   | 'activeCategoryId'
-  | 'addCatalogueDraftSection'
-  | 'addCatalogueItem'
   | 'addDraftSection'
   | 'addItemSection'
   | 'addManualItem'
   | 'allocationTotal'
   | 'cancelEditingItem'
-  | 'catalogueItems'
-  | 'catalogueSearch'
   | 'categoryTotal'
   | 'draftTotalQuantity'
   | 'editingLineId'
   | 'expandedAllocationRows'
-  | 'filteredCatalogueItems'
   | 'formatCurrency'
   | 'getAvailableSections'
-  | 'getCatalogueItemDraft'
   | 'getDescription'
   | 'getItemDraft'
   | 'getItemEntryLabel'
   | 'getItemsForCategory'
   | 'getProjectType'
   | 'isAllocationBalanced'
-  | 'isLoadingCatalogueItems'
   | 'isSaving'
-  | 'itemEntryMode'
-  | 'removeCatalogueDraftSection'
   | 'removeDraftSection'
   | 'removeItem'
   | 'removeItemSection'
-  | 'selectCatalogueItem'
   | 'selectCategoryTab'
   | 'selectedItemsInCategory'
   | 'startEditingItem'
@@ -59,7 +48,6 @@ const {
   formatCurrency,
   getItemsForCategory,
   isSaving,
-  itemEntryMode,
   selectCategoryTab,
   selectedItemsInCategory,
 } = props.viewModel
@@ -108,44 +96,12 @@ const {
         </p>
       </div>
 
-      <div class="flex rounded-lg border border-slate-200 bg-white p-1">
-        <button
-          type="button"
-          class="rounded-md px-3 py-2 text-xs font-semibold transition-colors"
-          :class="
-            itemEntryMode === 'catalogue'
-              ? 'bg-emerald-600 text-white'
-              : 'text-slate-600 hover:bg-slate-100'
-          "
-          :disabled="isSaving"
-          @click="itemEntryMode = 'catalogue'"
-        >
-          Select from Catalogue
-        </button>
-        <button
-          type="button"
-          class="rounded-md px-3 py-2 text-xs font-semibold transition-colors"
-          :class="
-            itemEntryMode === 'manual'
-              ? 'bg-emerald-600 text-white'
-              : 'text-slate-600 hover:bg-slate-100'
-          "
-          :disabled="isSaving"
-          @click="itemEntryMode = 'manual'"
-        >
-          Manual Entry
-        </button>
-      </div>
+      <span class="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-800">
+        Manual entry required
+      </span>
     </div>
 
-    <CreatePPMPCatalogueEntryForm
-      v-if="itemEntryMode === 'catalogue'"
-      :view-model="props.viewModel"
-      :active-category="activeCategory"
-    />
-
     <CreatePPMPManualEntryForm
-      v-else
       :view-model="props.viewModel"
       :active-category="activeCategory"
     />

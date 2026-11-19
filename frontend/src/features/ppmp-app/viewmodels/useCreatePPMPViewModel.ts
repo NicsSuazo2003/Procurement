@@ -87,7 +87,7 @@ export function useCreatePPMPViewModel() {
   const isLoadingCategories = ref(false)
 
   const activeCategoryId = ref<number | null>(null)
-  const itemEntryMode = ref<'catalogue' | 'manual'>('catalogue')
+  const itemEntryMode = ref<'catalogue' | 'manual'>('manual')
   const catalogueItems = ref<PlanningYearCatalogueItemDto[]>([])
   const isLoadingCatalogueItems = ref(false)
   const catalogueSearch = ref('')
@@ -177,10 +177,6 @@ export function useCreatePPMPViewModel() {
     activeCategoryId.value = categoryId
     editingLineId.value = null
     pageError.value = ''
-
-    if (selectedPlanningYearId.value) {
-      await loadCatalogueItems(selectedPlanningYearId.value, categoryId)
-    }
   }
 
   async function loadCatalogueItems(planningYearId: number, categoryId: number): Promise<void> {

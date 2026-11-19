@@ -47,8 +47,8 @@ const {
             Create Project Procurement Management Plan
           </h1>
           <p class="mt-1 text-sm text-slate-500">
-            Encode proposed procurement projects and allocate each item's requested quantity to your
-            sub-units.
+            Manually encode proposed procurement projects and allocate each item's requested quantity
+            to your sub-units.
           </p>
         </div>
 
