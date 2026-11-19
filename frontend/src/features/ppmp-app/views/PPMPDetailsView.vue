@@ -809,6 +809,7 @@ function getStatusClass(status: string): string {
         <p class="mt-3 text-sm text-gray-600">
           This PPMP was submitted on
           <strong>{{ formatDate(ppmp.submittedAt) }}</strong>.
+          End-users submit once; additional items or changes must be requested through Procurement during review.
         </p>
       </section>
 

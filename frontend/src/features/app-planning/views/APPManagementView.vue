@@ -62,6 +62,16 @@ function getCategoryName(categoryId: number): string {
   return categoryNames.value.get(categoryId) ?? `Category ${categoryId}`
 }
 
+function displayValue(value: string | number | null | undefined): string {
+  return value === null || value === undefined || value === ''
+    ? 'Not captured'
+    : String(value)
+}
+
+function displayYesNo(value: boolean | null): string {
+  return value === null ? 'Not captured' : value ? 'Yes' : 'No'
+}
+
 async function loadList(): Promise<void> {
   const [loadedApps, loadedYears] = await Promise.all([
     appApiService.getAll(),
@@ -390,16 +400,25 @@ async function addReviewedPPMPs(): Promise<void> {
           <p class="mt-1 font-semibold text-amber-700">{{ app.status }}</p>
         </div>
         <div>
+          <p class="text-xs uppercase text-slate-500">Revision</p>
+          <p class="mt-1 font-semibold text-slate-900">No. {{ app.revisionNo }}</p>
+        </div>
+        <div>
           <p class="text-xs uppercase text-slate-500">Total Estimated Budget</p>
           <p class="mt-1 font-semibold text-emerald-700">
             {{ formatCurrency(app.totalEstimatedBudget) }}
           </p>
         </div>
+        <div>
+          <p class="text-xs uppercase text-slate-500">Consolidated Categories</p>
+          <p class="mt-1 font-semibold text-slate-900">{{ app.categories.length }}</p>
+        </div>
       </section>
 
       <div class="flex flex-wrap items-center justify-between gap-3">
         <p class="text-sm text-slate-500">
-          Created {{ formatDate(app.createdAt) }} · {{ app.categories.length }} category group(s)
+          Created {{ formatDate(app.createdAt) }} · {{ app.categories.length }} category group(s) ·
+          {{ app.categories.reduce((total, category) => total + category.items.length, 0) }} consolidated item(s)
         </p>
         <button
           v-if="isProcurementStaff && app.status === 'Draft'"
@@ -425,38 +444,79 @@ async function addReviewedPPMPs(): Promise<void> {
         class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
       >
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
-          <h2 class="font-semibold text-slate-900">{{ getCategoryName(category.categoryId) }}</h2>
-          <span class="text-sm font-semibold text-emerald-700">
-            {{ formatCurrency(category.totalEstimatedBudget) }}
-          </span>
+          <div>
+            <h2 class="font-semibold text-slate-900">{{ getCategoryName(category.categoryId) }}</h2>
+            <p class="mt-1 text-xs text-slate-500">
+              {{ category.items.length }} consolidated item(s)
+            </p>
+          </div>
+          <div class="text-right">
+            <p class="text-xs uppercase text-slate-500">Category total</p>
+            <span class="text-sm font-semibold text-emerald-700">
+              {{ formatCurrency(category.totalEstimatedBudget) }}
+            </span>
+          </div>
         </div>
 
         <div class="overflow-x-auto">
           <table class="w-full text-left text-sm">
             <thead class="bg-slate-50 text-xs uppercase text-slate-500">
               <tr>
-                <th class="px-4 py-3 font-semibold">Project / Item</th>
-                <th class="px-4 py-3 font-semibold">Unit</th>
-                <th class="px-4 py-3 text-right font-semibold">Total Quantity</th>
-                <th class="px-4 py-3 text-right font-semibold">Estimated Unit Price</th>
-                <th class="px-4 py-3 text-right font-semibold">Estimated Budget</th>
+                <th class="px-4 py-3 font-semibold">PAP Code</th>
+                <th class="px-4 py-3 font-semibold">Object Code / UACS</th>
+                <th class="min-w-64 px-4 py-3 font-semibold">Procurement Project</th>
+                <th class="min-w-56 px-4 py-3 font-semibold">General Description</th>
+                <th class="px-4 py-3 font-semibold">End-User / Unit</th>
+                <th class="px-4 py-3 font-semibold">Classification</th>
+                <th class="px-4 py-3 font-semibold">Mode</th>
+                <th class="px-4 py-3 font-semibold">Bid Criteria</th>
+                <th class="px-4 py-3 font-semibold">Marginalized Sector</th>
+                <th class="px-4 py-3 font-semibold">Green Specs</th>
+                <th class="px-4 py-3 font-semibold">Target PR Date</th>
+                <th class="px-4 py-3 font-semibold">Activity Start</th>
+                <th class="px-4 py-3 font-semibold">Activity End</th>
+                <th class="px-4 py-3 font-semibold">Source of Funds</th>
+                <th class="px-4 py-3 text-right font-semibold">ABC Total</th>
+                <th class="px-4 py-3 text-right font-semibold">MOOE</th>
+                <th class="px-4 py-3 text-right font-semibold">Capital Outlay</th>
+                <th class="px-4 py-3 text-right font-semibold">Multi-Year Cost</th>
+                <th class="px-4 py-3 text-right font-semibold">Life Cycle Cost</th>
+                <th class="px-4 py-3 font-semibold">Strategy / Tools</th>
+                <th class="px-4 py-3 font-semibold">Prospective Bidders</th>
+                <th class="px-4 py-3 font-semibold">Observers</th>
+                <th class="px-4 py-3 font-semibold">Procurement Agent</th>
+                <th class="px-4 py-3 font-semibold">Collaborating Entities</th>
+                <th class="px-4 py-3 font-semibold">Remarks</th>
                 <th class="px-4 py-3 font-semibold">Source PPMP</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               <tr v-for="item in category.items" :key="item.appItemId">
-                <td class="max-w-sm px-4 py-4">
-                  <p class="font-medium text-slate-800">{{ item.itemDescription }}</p>
-                  <p v-if="item.itemCode" class="mt-1 text-xs text-slate-500">{{ item.itemCode }}</p>
-                </td>
-                <td class="px-4 py-4 text-slate-600">{{ item.unit }}</td>
-                <td class="px-4 py-4 text-right tabular-nums text-slate-700">{{ item.totalQuantity }}</td>
-                <td class="px-4 py-4 text-right tabular-nums text-slate-700">
-                  {{ formatCurrency(item.estimatedUnitPrice) }}
-                </td>
-                <td class="px-4 py-4 text-right font-medium tabular-nums text-slate-800">
-                  {{ formatCurrency(item.estimatedBudget) }}
-                </td>
+                <td class="px-4 py-4">{{ displayValue(item.papCode) }}</td>
+                <td class="px-4 py-4">{{ displayValue(item.objectCode) }}</td>
+                <td class="px-4 py-4 font-medium text-slate-800">{{ displayValue(item.procurementProjectName) }}</td>
+                <td class="px-4 py-4 text-slate-600">{{ displayValue(item.generalDescription) }}</td>
+                <td class="px-4 py-4 text-slate-600">{{ displayValue(item.endUser) }}</td>
+                <td class="px-4 py-4">{{ displayValue(item.classification) }}</td>
+                <td class="px-4 py-4">{{ displayValue(item.modeOfProcurement) }}</td>
+                <td class="px-4 py-4">{{ displayValue(item.bidEvaluationCriteria) }}</td>
+                <td class="px-4 py-4">{{ displayYesNo(item.marginalizedSectorConsideration) }}</td>
+                <td class="px-4 py-4">{{ displayYesNo(item.greenTechnicalSpecifications) }}</td>
+                <td class="px-4 py-4">{{ displayValue(item.targetPRSubmissionDate) }}</td>
+                <td class="px-4 py-4">{{ displayValue(item.startOfProcurementActivity) }}</td>
+                <td class="px-4 py-4">{{ displayValue(item.endOfProcurementActivity) }}</td>
+                <td class="px-4 py-4">{{ displayValue(item.sourceOfFunds) }}</td>
+                <td class="px-4 py-4 text-right tabular-nums">{{ formatCurrency(item.estimatedBudget) }}</td>
+                <td class="px-4 py-4 text-right tabular-nums">{{ item.mooe === null ? 'Not captured' : formatCurrency(item.mooe) }}</td>
+                <td class="px-4 py-4 text-right tabular-nums">{{ item.capitalOutlay === null ? 'Not captured' : formatCurrency(item.capitalOutlay) }}</td>
+                <td class="px-4 py-4 text-right tabular-nums">{{ item.multiYearContractCost === null ? 'Not captured' : formatCurrency(item.multiYearContractCost) }}</td>
+                <td class="px-4 py-4 text-right tabular-nums">{{ item.lifeCycleCost === null ? 'Not captured' : formatCurrency(item.lifeCycleCost) }}</td>
+                <td class="px-4 py-4">{{ displayValue(item.procurementStrategyTools) }}</td>
+                <td class="px-4 py-4">{{ displayValue(item.prospectiveBidders) }}</td>
+                <td class="px-4 py-4">{{ displayValue(item.potentialObservers) }}</td>
+                <td class="px-4 py-4">{{ displayValue(item.procurementAgent) }}</td>
+                <td class="px-4 py-4">{{ displayValue(item.collaboratingEntities) }}</td>
+                <td class="px-4 py-4">{{ displayValue(item.remarks) }}</td>
                 <td class="px-4 py-4">
                   <div class="flex flex-wrap gap-2">
                     <RouterLink
@@ -475,7 +535,7 @@ async function addReviewedPPMPs(): Promise<void> {
                 </td>
               </tr>
               <tr v-if="category.items.length === 0">
-                <td colspan="6" class="px-4 py-8 text-center text-sm text-slate-500">
+                <td colspan="26" class="px-4 py-8 text-center text-sm text-slate-500">
                   No items in this category.
                 </td>
               </tr>

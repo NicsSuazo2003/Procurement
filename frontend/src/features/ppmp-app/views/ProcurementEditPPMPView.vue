@@ -527,7 +527,7 @@ function cancelEditing() {
           </h1>
 
           <p class="mt-1 text-sm text-slate-500">
-            Review and update PPMPs approved by the Unit Head.
+            Review and update the submitted PPMP, including items requested through Procurement, before completing the review.
           </p>
         </div>
       </div>

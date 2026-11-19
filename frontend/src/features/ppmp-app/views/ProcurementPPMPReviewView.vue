@@ -361,7 +361,7 @@ async function completeReview(record: PPMPListApi) {
           </h2>
 
           <p class="mt-1 text-xs text-slate-500">
-            Start reviewing Unit Head-approved PPMPs, edit records under review, and complete updated reviews.
+            End-users submit one PPMP. During Procurement review, add requested items or update details before completing the review.
           </p>
         </div>
 

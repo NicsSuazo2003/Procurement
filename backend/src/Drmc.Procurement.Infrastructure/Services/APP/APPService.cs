@@ -32,6 +32,7 @@ public class APPService : IAPPService
             PlanningYearId = app.PlanningYearId,
             APPReference = app.APPReference,
             Status = app.Status,
+            RevisionNo = app.RevisionNo,
             TotalEstimatedBudget = app.Categories.Sum(
                 category => category.TotalEstimatedBudget),
             CreatedAt = app.CreatedAt,
@@ -96,6 +97,7 @@ public class APPService : IAPPService
         // Only reviewed PPMPs for the selected planning year are eligible.
         var reviewedPPMPs = await _context.PPMPs
             .Include(x => x.Items)
+            .Include(x => x.Department)
             .Where(x =>
                 x.PlanningYearId == planningYearId &&
                 x.Status == "Reviewed")
@@ -150,7 +152,9 @@ public class APPService : IAPPService
 
             foreach (var ppmpItem in categoryGroup)
             {
-                var appItem = CreateAPPItemFromPPMPItem(ppmpItem);
+                var appItem = CreateAPPItemFromPPMPItem(
+                    ppmpItem,
+                    ppmpItem.PPMP.Department.DepartmentName);
 
                 appCategory.Items.Add(appItem);
 
@@ -211,6 +215,7 @@ public class APPService : IAPPService
         // Find subsequently reviewed PPMPs for this APP's planning year.
         var reviewedPPMPs = await _context.PPMPs
             .Include(x => x.Items)
+            .Include(x => x.Department)
             .Where(x =>
                 x.PlanningYearId == app.PlanningYearId &&
                 x.Status == "Reviewed")
@@ -272,7 +277,9 @@ public class APPService : IAPPService
                 }
 
                 // Keep the source PPMP item as a separate APP item.
-                var appItem = CreateAPPItemFromPPMPItem(ppmpItem);
+                var appItem = CreateAPPItemFromPPMPItem(
+                    ppmpItem,
+                    ppmp.Department.DepartmentName);
 
                 appCategory.Items.Add(appItem);
 
@@ -291,7 +298,8 @@ public class APPService : IAPPService
     }
 
     private static APPItem CreateAPPItemFromPPMPItem(
-        Drmc.Procurement.Domain.Entities.Procurement.PPMPItem ppmpItem)
+        Drmc.Procurement.Domain.Entities.Procurement.PPMPItem ppmpItem,
+        string endUser)
     {
         return new APPItem
         {
@@ -301,6 +309,16 @@ public class APPService : IAPPService
             ItemType = ppmpItem.ItemType,
             Unit = ppmpItem.Unit,
             Specifications = ppmpItem.Specifications,
+            PAPCode = ppmpItem.ItemCode,
+            ProcurementProjectName = ppmpItem.ItemDescription,
+            GeneralDescription = ppmpItem.GeneralDescriptionAndObjective,
+            EndUser = endUser,
+            Classification = ppmpItem.ProjectType,
+            ModeOfProcurement = ppmpItem.RecommendedModeOfProcurement,
+            StartOfProcurementActivity = ppmpItem.StartOfProcurementActivity,
+            EndOfProcurementActivity = ppmpItem.EndOfProcurementActivity,
+            SourceOfFunds = ppmpItem.SourceOfFunds,
+            Remarks = ppmpItem.AttachedSupportingDocuments,
             TotalQuantity = ppmpItem.Quantity,
             EstimatedUnitPrice = ppmpItem.UnitPrice,
             EstimatedBudget = ppmpItem.EstimatedBudget,
@@ -344,6 +362,7 @@ public class APPService : IAPPService
             CreatedBy = app.CreatedBy,
             APPReference = app.APPReference,
             Status = app.Status,
+            RevisionNo = app.RevisionNo,
             TotalEstimatedBudget = app.Categories.Sum(
                 category => category.TotalEstimatedBudget),
             CreatedAt = app.CreatedAt,
@@ -367,6 +386,30 @@ public class APPService : IAPPService
                             ItemType = item.ItemType,
                             Unit = item.Unit,
                             Specifications = item.Specifications,
+                            PAPCode = item.PAPCode,
+                            ObjectCode = item.ObjectCode,
+                            ProcurementProjectName = item.ProcurementProjectName,
+                            GeneralDescription = item.GeneralDescription,
+                            EndUser = item.EndUser,
+                            Classification = item.Classification,
+                            ModeOfProcurement = item.ModeOfProcurement,
+                            BidEvaluationCriteria = item.BidEvaluationCriteria,
+                            MarginalizedSectorConsideration = item.MarginalizedSectorConsideration,
+                            GreenTechnicalSpecifications = item.GreenTechnicalSpecifications,
+                            TargetPRSubmissionDate = item.TargetPRSubmissionDate,
+                            StartOfProcurementActivity = item.StartOfProcurementActivity,
+                            EndOfProcurementActivity = item.EndOfProcurementActivity,
+                            SourceOfFunds = item.SourceOfFunds,
+                            MOOE = item.MOOE,
+                            CapitalOutlay = item.CapitalOutlay,
+                            MultiYearContractCost = item.MultiYearContractCost,
+                            LifeCycleCost = item.LifeCycleCost,
+                            ProcurementStrategyTools = item.ProcurementStrategyTools,
+                            ProspectiveBidders = item.ProspectiveBidders,
+                            PotentialObservers = item.PotentialObservers,
+                            ProcurementAgent = item.ProcurementAgent,
+                            CollaboratingEntities = item.CollaboratingEntities,
+                            Remarks = item.Remarks,
                             TotalQuantity = item.TotalQuantity,
                             EstimatedUnitPrice =
                                 item.EstimatedUnitPrice,

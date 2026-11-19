@@ -47,6 +47,9 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                     b.Property<int>("PlanningYearId")
                         .HasColumnType("int");
 
+                    b.Property<int>("RevisionNo")
+                        .HasColumnType("int");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -103,6 +106,30 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                     b.Property<int>("APPCategoryId")
                         .HasColumnType("int");
 
+                    b.Property<string>("BidEvaluationCriteria")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<decimal?>("CapitalOutlay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Classification")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CollaboratingEntities")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("EndOfProcurementActivity")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("EndUser")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<decimal>("EstimatedBudget")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -110,6 +137,13 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("EstimatedUnitPrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("GeneralDescription")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<bool?>("GreenTechnicalSpecifications")
+                        .HasColumnType("bit");
 
                     b.Property<string>("ItemCode")
                         .IsRequired()
@@ -128,9 +162,72 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<decimal?>("LifeCycleCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("MOOE")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool?>("MarginalizedSectorConsideration")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModeOfProcurement")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal?>("MultiYearContractCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ObjectCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PAPCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PotentialObservers")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("ProcurementAgent")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("ProcurementProjectName")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("ProcurementStrategyTools")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ProspectiveBidders")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<string>("SourceOfFunds")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Specifications")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("StartOfProcurementActivity")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("TargetPRSubmissionDate")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<decimal>("TotalQuantity")
                         .HasPrecision(18, 2)

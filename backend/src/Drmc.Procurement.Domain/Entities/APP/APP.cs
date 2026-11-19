@@ -12,6 +12,7 @@ public class APP
 
     public string APPReference { get; set; } = string.Empty;
     public string Status { get; set; } = "Draft";
+    public int RevisionNo { get; set; } = 1;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? ApprovedAt { get; set; }
