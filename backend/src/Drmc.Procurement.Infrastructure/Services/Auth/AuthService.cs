@@ -73,6 +73,7 @@ public class AuthService : IAuthService
             DepartmentName = user.Department?.DepartmentName,
             EmployeeNumber = user.EmployeeNumber,
             FullName = user.FullName,
+            Position = user.Position,
             Email = user.Email,
             IsActive = user.IsActive,
             RoleNames = user.UserRoles

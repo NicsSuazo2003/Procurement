@@ -20,6 +20,12 @@ public class PPMPChangeHistoryItem
     public string? PreviousGeneralDescriptionAndObjective { get; set; }
     public string? PreviousProjectType { get; set; }
     public bool? PreviousPreProcurementConference { get; set; }
+    public string? PreviousRecommendedModeOfProcurement { get; set; }
+    public string? PreviousStartOfProcurementActivity { get; set; }
+    public string? PreviousEndOfProcurementActivity { get; set; }
+    public string? PreviousExpectedDeliveryImplementationPeriod { get; set; }
+    public string? PreviousSourceOfFunds { get; set; }
+    public string? PreviousAttachedSupportingDocuments { get; set; }
 
     // Updated item information
     public int? UpdatedItemId { get; set; }
@@ -34,6 +40,12 @@ public class PPMPChangeHistoryItem
     public string? UpdatedGeneralDescriptionAndObjective { get; set; }
     public string? UpdatedProjectType { get; set; }
     public bool? UpdatedPreProcurementConference { get; set; }
+    public string? UpdatedRecommendedModeOfProcurement { get; set; }
+    public string? UpdatedStartOfProcurementActivity { get; set; }
+    public string? UpdatedEndOfProcurementActivity { get; set; }
+    public string? UpdatedExpectedDeliveryImplementationPeriod { get; set; }
+    public string? UpdatedSourceOfFunds { get; set; }
+    public string? UpdatedAttachedSupportingDocuments { get; set; }
 
     public PPMPChangeHistory ChangeHistory { get; set; } = null!;
 

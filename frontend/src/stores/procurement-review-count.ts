@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 
 import { ppmpApiService } from '@/features/ppmp-app/services/ppmpApiService'
 
-const PENDING_REVIEW_STATUS = 'approved by unit head'
+const PENDING_REVIEW_STATUS = 'Approved by Unit Head'
 
 export const useProcurementReviewCountStore = defineStore('procurement-review-count', () => {
   const pendingCount = ref(0)
@@ -23,13 +23,8 @@ export const useProcurementReviewCountStore = defineStore('procurement-review-co
     isRefreshing.value = true
 
     try {
-      const records = await ppmpApiService.getAll()
-
-      const count = records.filter(
-        record => record.status.trim().toLowerCase() === PENDING_REVIEW_STATUS,
-      ).length
-
-      setPendingCount(count)
+      const summary = await ppmpApiService.getSummary()
+      setPendingCount(summary.byStatus[PENDING_REVIEW_STATUS] ?? 0)
     } catch {
       // Keep the previous count on failure.
     } finally {

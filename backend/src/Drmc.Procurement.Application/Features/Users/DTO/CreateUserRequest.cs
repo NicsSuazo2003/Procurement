@@ -14,6 +14,9 @@ public class CreateUserRequest
     [StringLength(150)]
     public string FullName { get; set; } = string.Empty;
 
+    [StringLength(100)]
+    public string? Position { get; set; }
+
     [Required]
     [EmailAddress]
     [StringLength(150)]

@@ -25,6 +25,13 @@ export interface EditableItem {
   projectType: string
   preProcurementConference: boolean | null
 
+  recommendedModeOfProcurement: string
+  startOfProcurementActivity: string
+  endOfProcurementActivity: string
+  expectedDeliveryImplementationPeriod: string
+  sourceOfFunds: string
+  attachedSupportingDocuments: string
+
   unit: string
   unitPrice: number
   allocations: EditableAllocation[]

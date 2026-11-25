@@ -18,6 +18,8 @@ public class PPMPDetailDto
 
     public string CreatedByName { get; set; } = string.Empty;
 
+    public string? CreatedByPosition { get; set; }
+
     public string Status { get; set; } = string.Empty;
 
     public decimal EstimatedBudget { get; set; }

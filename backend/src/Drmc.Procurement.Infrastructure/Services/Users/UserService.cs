@@ -31,6 +31,9 @@ public class UserService : IUserService
         var employeeNumber = request.EmployeeNumber.Trim();
         var email = request.Email.Trim();
         var fullName = request.FullName.Trim();
+        var position = string.IsNullOrWhiteSpace(request.Position)
+            ? null
+            : request.Position.Trim();
 
         if (string.IsNullOrWhiteSpace(employeeNumber) ||
             string.IsNullOrWhiteSpace(email) ||
@@ -68,6 +71,7 @@ public class UserService : IUserService
             DepartmentId = request.DepartmentId,
             EmployeeNumber = employeeNumber,
             FullName = fullName,
+            Position = position,
             Email = email,
             IsActive = true
         };
@@ -92,6 +96,9 @@ public class UserService : IUserService
         var employeeNumber = request.EmployeeNumber.Trim();
         var email = request.Email.Trim();
         var fullName = request.FullName.Trim();
+        var position = string.IsNullOrWhiteSpace(request.Position)
+            ? null
+            : request.Position.Trim();
 
         if (string.IsNullOrWhiteSpace(employeeNumber) ||
             string.IsNullOrWhiteSpace(email) ||
@@ -131,6 +138,7 @@ public class UserService : IUserService
         user.DepartmentId = request.DepartmentId;
         user.EmployeeNumber = employeeNumber;
         user.FullName = fullName;
+        user.Position = position;
         user.Email = email;
 
         await _context.SaveChangesAsync();
@@ -166,6 +174,7 @@ public class UserService : IUserService
                     : null,
                 EmployeeNumber = x.EmployeeNumber,
                 FullName = x.FullName,
+                Position = x.Position,
                 Email = x.Email,
                 IsActive = x.IsActive,
                 RoleNames = x.UserRoles

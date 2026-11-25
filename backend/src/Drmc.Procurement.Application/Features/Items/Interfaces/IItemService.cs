@@ -17,4 +17,5 @@ public interface IItemService
     Task<bool> SetActiveStatusAsync(int id, bool isActive);
     
     Task<List<PlanningYearCatalogueItemDto>>
-    GetByPlanningYearAndCategoryAsync(int planningYear, int categoryId);}
+    GetByPlanningYearAndCategoryAsync(int planningYear, int categoryId);
+    }

@@ -90,7 +90,7 @@ const items = ref<PlanningYearCatalogueItemDto[]>([])
   async function loadItems(
   planningYear: number,
   categoryId: number,
- ): Promise<void> {
+ ): Promise<PlanningYearCatalogueItemDto[]> {
   items.value = []
   error.value = ''
 
@@ -101,10 +101,12 @@ const items = ref<PlanningYearCatalogueItemDto[]>([])
     )
 
     items.value = result
+    return result
    } catch (err) {
     error.value = err instanceof Error
       ? err.message
       : 'Unable to load planning year catalogue items.'
+    return []
    }
  } 
 

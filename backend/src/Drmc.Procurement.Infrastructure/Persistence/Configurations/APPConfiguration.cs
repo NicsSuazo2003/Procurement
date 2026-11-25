@@ -24,6 +24,9 @@ public class APPConfiguration : IEntityTypeConfiguration<APP>
             .HasMaxLength(50)
             .IsRequired();
 
+        builder.Property(a => a.RevisionNo)
+            .IsRequired();
+
         builder.Property(a => a.CreatedAt)
             .IsRequired();
 

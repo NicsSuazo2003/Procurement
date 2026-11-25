@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { Search, ClipboardCheck, Eye, RefreshCw } from '@lucide/vue'
+import { Search, ClipboardCheck, Eye, RefreshCw, Clock, Wallet } from '@lucide/vue'
 import { RouterLink } from 'vue-router'
 
 import { ppmpApiService } from '../services/ppmpApiService'
 import type { PPMPListApi } from '../models/ppmp-api.types'
 
 import { useUnitHeadApprovalsStore } from '@/stores/unit-head-approvals'
+import { formatDatePH, formatPHP, getPPMPStatusStyle } from '@/shared/utilities/ppmpUiHelpers'
 
 const PENDING_STATUS = 'For Unit Head Approval'
 
@@ -85,167 +86,145 @@ function goToPage(next: number): void {
   void loadPPMPs()
 }
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-PH', {
-    style: 'currency',
-    currency: 'PHP',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount)
-}
-
-function formatDate(date?: string | null): string {
-  if (!date) return 'Not recorded'
-
-  const parsedDate = new Date(date)
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return date
-  }
-
-  return new Intl.DateTimeFormat('en-PH', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(parsedDate)
-}
-
 onMounted(() => {
   void loadPPMPs()
 })
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="mx-auto max-w-7xl space-y-6">
+    <!-- PAGE HEADER -->
     <div class="flex flex-wrap items-start justify-between gap-4">
-      <div>
-        <div class="flex items-center gap-2">
-          <ClipboardCheck :size="25" class="text-emerald-700" />
-
-          <h1 class="text-2xl font-bold text-slate-900">
-            Unit Head Approval Queue
-          </h1>
+      <div class="flex items-start gap-3">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-600/20">
+          <ClipboardCheck :size="22" />
         </div>
 
-        <p class="mt-1 text-sm text-slate-500">
-          Review PPMP submissions from your department and approve them before
-          they proceed to Procurement.
-        </p>
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900">
+            Unit Head Approval Queue
+          </h1>
+          <p class="mt-1 text-sm text-slate-500">
+            Review PPMP submissions from your unit and approve them before they proceed to Procurement.
+          </p>
+        </div>
       </div>
 
       <button
         type="button"
-        @click="loadPPMPs"
         :disabled="isLoading"
-        class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+        class="drmc-btn-secondary"
+        @click="loadPPMPs"
       >
-        <RefreshCw
-          :size="16"
-          :class="{ 'animate-spin': isLoading }"
-        />
+        <RefreshCw :size="16" :class="{ 'animate-spin': isLoading }" />
         Refresh
       </button>
     </div>
 
-    <!-- SUMMARY -->
+    <!-- SUMMARY CARDS -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p class="text-sm text-slate-500">
-          Awaiting Your Approval
-        </p>
+      <div class="drmc-card flex items-center justify-between p-5">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Awaiting Your Approval
+          </p>
+          <p class="mt-2 text-3xl font-bold tracking-tight text-amber-600 tabular-nums">
+            {{ totalCount }}
+          </p>
+          <p class="mt-1 text-xs text-slate-500">
+            Total pending unit submissions
+          </p>
+        </div>
 
-        <p class="mt-2 text-2xl font-bold text-amber-600">
-          {{ totalCount }}
-        </p>
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-inset ring-amber-600/20">
+          <Clock :size="22" />
+        </div>
       </div>
 
-      <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p class="text-sm text-slate-500">
-          Total Estimated Budget (current page)
-        </p>
+      <div class="drmc-card flex items-center justify-between p-5">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Estimated Budget (Current Page)
+          </p>
+          <p class="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums sm:text-3xl">
+            {{ formatPHP(totalBudget) }}
+          </p>
+          <p class="mt-1 text-xs text-slate-500">
+            Combined value of displayed PPMPs
+          </p>
+        </div>
 
-        <p class="mt-2 text-2xl font-bold text-slate-900">
-          {{ formatCurrency(totalBudget) }}
-        </p>
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-600/20">
+          <Wallet :size="22" />
+        </div>
       </div>
     </div>
 
     <!-- ERROR MESSAGE -->
     <div
       v-if="errorMessage"
-      class="rounded-lg border border-red-200 bg-red-50 p-4"
+      role="alert"
+      class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-800"
     >
-      <p class="text-sm font-medium text-red-800">
-        {{ errorMessage }}
-      </p>
+      <p class="font-medium">{{ errorMessage }}</p>
 
       <button
         type="button"
+        class="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-800 transition hover:bg-red-200"
         @click="loadPPMPs"
-        class="mt-2 text-sm font-semibold text-red-700 hover:underline"
       >
         Try Again
       </button>
     </div>
 
     <!-- APPROVAL QUEUE -->
-    <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div class="mb-4">
-        <h2 class="font-semibold text-slate-900">
-          PPMP Submissions for Approval
-        </h2>
+    <section class="drmc-card overflow-hidden">
+      <div class="flex flex-col justify-between gap-4 border-b border-slate-200/80 p-5 sm:flex-row sm:items-center">
+        <div>
+          <h2 class="text-base font-semibold text-slate-900">
+            PPMP Submissions for Approval
+          </h2>
+          <p class="mt-0.5 text-xs text-slate-500">
+            Only PPMPs submitted for Unit Head approval are displayed here.
+          </p>
+        </div>
 
-        <p class="mt-1 text-xs text-slate-500">
-          Only PPMPs submitted for Unit Head approval are displayed here.
-        </p>
-      </div>
-
-      <!-- SEARCH -->
-      <div class="relative max-w-md">
-        <Search
-          :size="18"
-          class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-        />
-
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search current page..."
-          class="w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-        />
+        <!-- SEARCH -->
+        <div class="relative w-full sm:max-w-xs">
+          <Search
+            :size="16"
+            class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+          />
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search reference or unit..."
+            class="drmc-input pl-9"
+          />
+        </div>
       </div>
 
       <!-- LOADING -->
-      <div
-        v-if="isLoading"
-        class="py-12 text-center"
-      >
-        <RefreshCw
-          :size="28"
-          class="mx-auto mb-3 animate-spin text-emerald-700"
-        />
-
-        <p class="text-sm text-slate-500">
+      <div v-if="isLoading" class="py-14 text-center">
+        <RefreshCw :size="26" class="mx-auto mb-3 animate-spin text-brand-700" />
+        <p class="text-sm font-medium text-slate-600">
           Loading PPMP approval records...
         </p>
       </div>
 
       <!-- TABLE -->
-      <div
-        v-else
-        class="mt-5 overflow-x-auto"
-      >
+      <div v-else class="overflow-x-auto">
         <table class="w-full text-left text-sm">
-          <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+          <thead class="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             <tr>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Reference No.</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Department</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Planning Year</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Items</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Estimated Budget</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Submitted to Unit Head</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Status</th>
-              <th class="whitespace-nowrap px-4 py-3 text-center font-semibold">Action</th>
+              <th class="whitespace-nowrap px-5 py-3.5">Reference No.</th>
+              <th class="whitespace-nowrap px-5 py-3.5">Unit</th>
+              <th class="whitespace-nowrap px-5 py-3.5">Planning Year</th>
+              <th class="whitespace-nowrap px-5 py-3.5 text-right">Items</th>
+              <th class="whitespace-nowrap px-5 py-3.5 text-right">Estimated Budget</th>
+              <th class="whitespace-nowrap px-5 py-3.5">Submitted Date</th>
+              <th class="whitespace-nowrap px-5 py-3.5">Status</th>
+              <th class="whitespace-nowrap px-5 py-3.5 text-center">Action</th>
             </tr>
           </thead>
 
@@ -253,62 +232,71 @@ onMounted(() => {
             <tr
               v-for="record in filteredRecords"
               :key="record.ppmpId"
-              class="hover:bg-slate-50"
+              class="transition-colors hover:bg-slate-50/80"
             >
-              <td class="whitespace-nowrap px-4 py-4 font-medium text-emerald-700">
-                {{ record.ppmpReference }}
+              <td class="whitespace-nowrap px-5 py-4 font-semibold text-brand-700">
+                <RouterLink
+                  :to="{ name: 'ppmp-details', params: { id: record.ppmpId } }"
+                  class="hover:underline"
+                >
+                  {{ record.ppmpReference }}
+                </RouterLink>
               </td>
 
-              <td class="whitespace-nowrap px-4 py-4 text-slate-600">
+              <td class="whitespace-nowrap px-5 py-4 font-medium text-slate-800">
                 {{ record.departmentName }}
               </td>
 
-              <td class="px-4 py-4 text-slate-600">
+              <td class="whitespace-nowrap px-5 py-4 text-slate-600 tabular-nums">
                 {{ record.planningYear }}
               </td>
 
-              <td class="px-4 py-4 text-slate-600">
+              <td class="whitespace-nowrap px-5 py-4 text-right text-slate-600 tabular-nums">
                 {{ record.itemCount }}
               </td>
 
-              <td class="whitespace-nowrap px-4 py-4 text-slate-600">
-                {{ formatCurrency(record.estimatedBudget) }}
+              <td class="whitespace-nowrap px-5 py-4 text-right font-semibold text-slate-900 tabular-nums">
+                {{ formatPHP(record.estimatedBudget) }}
               </td>
 
-              <td class="whitespace-nowrap px-4 py-4 text-slate-600">
-                {{ formatDate(record.submittedAt) }}
+              <td class="whitespace-nowrap px-5 py-4 text-slate-600">
+                {{ formatDatePH(record.submittedAt, { fallback: 'Not recorded' }) }}
               </td>
 
-              <td class="whitespace-nowrap px-4 py-4">
-                <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+              <td class="whitespace-nowrap px-5 py-4">
+                <span
+                  :class="[
+                    'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset',
+                    getPPMPStatusStyle(record.status).pill,
+                  ]"
+                >
+                  <span :class="['h-1.5 w-1.5 rounded-full', getPPMPStatusStyle(record.status).dot]" />
                   {{ record.status }}
                 </span>
               </td>
 
-              <td class="px-4 py-4 text-center">
+              <td class="whitespace-nowrap px-5 py-4 text-center">
                 <RouterLink
                   :to="{ name: 'ppmp-details', params: { id: record.ppmpId } }"
-                  class="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-800"
+                  class="drmc-btn-primary px-3 py-1.5 text-xs"
                 >
-                  <Eye :size="15" />
+                  <Eye :size="14" />
                   Review
                 </RouterLink>
               </td>
             </tr>
 
             <tr v-if="filteredRecords.length === 0">
-              <td colspan="8" class="px-4 py-12 text-center">
+              <td colspan="8" class="px-5 py-14 text-center">
                 <ClipboardCheck :size="32" class="mx-auto mb-3 text-slate-300" />
-
-                <p class="font-medium text-slate-700">
+                <p class="font-semibold text-slate-800">
                   {{ searchQuery
                     ? 'No matching PPMP submissions found'
                     : 'No PPMP submissions awaiting approval'
                   }}
                 </p>
-
                 <p class="mt-1 text-xs text-slate-500">
-                  PPMPs submitted by End-user Departments will appear here.
+                  PPMPs submitted by end-user units will appear here.
                 </p>
               </td>
             </tr>
@@ -317,19 +305,18 @@ onMounted(() => {
       </div>
 
       <!-- PAGINATION -->
-      <div class="mt-4 flex flex-col items-start justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center">
-        <div class="text-xs text-slate-500">
-          Showing
-          {{ filteredRecords.length }} on this page ·
-          {{ totalCount }} total ·
-          Page {{ page }} of {{ Math.max(totalPages, 1) }}
+      <div class="flex flex-col items-start justify-between gap-3 border-t border-slate-100 bg-slate-50/50 px-5 py-3.5 sm:flex-row sm:items-center">
+        <div class="text-xs text-slate-500 tabular-nums">
+          Showing <span class="font-semibold text-slate-700">{{ filteredRecords.length }}</span> on this page ·
+          <span class="font-semibold text-slate-700">{{ totalCount }}</span> total ·
+          Page <span class="font-semibold text-slate-700">{{ page }}</span> of {{ Math.max(totalPages, 1) }}
         </div>
 
         <div class="flex items-center gap-2">
           <button
             type="button"
             :disabled="page <= 1 || isLoading"
-            class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            class="drmc-btn-secondary px-3 py-1.5 text-xs"
             @click="goToPage(page - 1)"
           >
             Previous
@@ -338,7 +325,7 @@ onMounted(() => {
           <button
             type="button"
             :disabled="page >= totalPages || isLoading"
-            class="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            class="drmc-btn-secondary px-3 py-1.5 text-xs"
             @click="goToPage(page + 1)"
           >
             Next

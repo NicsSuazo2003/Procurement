@@ -1,49 +1,37 @@
+using System.Security.Claims;
+using Drmc.Procurement.Application.Common.Messaging;
+using Drmc.Procurement.Application.Features.Roles.Commands;
 using Drmc.Procurement.Application.Features.Roles.DTO;
-using Drmc.Procurement.Application.Features.Roles.Interfaces;
+using Drmc.Procurement.Application.Features.Roles.Queries;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Drmc.Procurement.WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class RolesController : ControllerBase
+public class RolesController(IDispatcher dispatcher) : ControllerBase
 {
-    private readonly IRoleService _service;
-
-    public RolesController(IRoleService service)
-    {
-        _service = service;
-    }
-
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        return Ok(await _service.GetAllAsync());
+        return Ok(await dispatcher.Send(new GetAllRolesQuery(), HttpContext.RequestAborted));
     }
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var result = await _service.GetByIdAsync(id);
-
-        if (result is null)
-            return NotFound();
-
+        var result = await dispatcher.Send(new GetRoleByIdQuery(id), HttpContext.RequestAborted);
+        if (result is null) return NotFound();
         return Ok(result);
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create(
-        [FromBody] CreateRoleRequest request)
+    public async Task<IActionResult> Create([FromBody] CreateRoleRequest request)
     {
         try
         {
-            var result = await _service.CreateAsync(request);
-
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = result.RoleId },
-                result);
+            var result = await dispatcher.Send(new CreateRoleCommand(request), HttpContext.RequestAborted);
+            return CreatedAtAction(nameof(GetById), new { id = result.RoleId }, result);
         }
         catch (InvalidOperationException ex)
         {
@@ -52,17 +40,12 @@ public class RolesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(
-        int id,
-        [FromBody] CreateRoleRequest request)
+    public async Task<IActionResult> Update(int id, [FromBody] CreateRoleRequest request)
     {
         try
         {
-            var result = await _service.UpdateAsync(id, request);
-
-            if (result is null)
-                return NotFound();
-
+            var result = await dispatcher.Send(new UpdateRoleCommand(id, request), HttpContext.RequestAborted);
+            if (result is null) return NotFound();
             return Ok(result);
         }
         catch (InvalidOperationException ex)
@@ -76,11 +59,8 @@ public class RolesController : ControllerBase
     {
         try
         {
-            var deleted = await _service.DeleteAsync(id);
-
-            if (!deleted)
-                return NotFound();
-
+            var deleted = await dispatcher.Send(new DeleteRoleCommand(id), HttpContext.RequestAborted);
+            if (!deleted) return NotFound();
             return NoContent();
         }
         catch (InvalidOperationException ex)

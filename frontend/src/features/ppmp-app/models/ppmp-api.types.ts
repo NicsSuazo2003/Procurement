@@ -8,6 +8,7 @@ export interface CreatePPMPRequest {
 export interface CreatePPMPItemRequest {
   itemId: number | null
   categoryId: number
+  teamId: number | null
 
   // Legacy backend compatibility fields.
   itemCode: string
@@ -20,6 +21,13 @@ export interface CreatePPMPItemRequest {
   generalDescriptionAndObjective: string
   projectType: string
   preProcurementConference: boolean
+
+  recommendedModeOfProcurement: string
+  startOfProcurementActivity: string
+  endOfProcurementActivity: string
+  expectedDeliveryImplementationPeriod: string
+  sourceOfFunds: string
+  attachedSupportingDocuments: string
 
   quantity: number
   unitPrice: number
@@ -61,6 +69,7 @@ export interface PPMPItemApi {
   ppmpItemId: number
   itemId: number | null
   categoryId: number
+  teamId: number | null
   categoryName: string
 
   // Legacy fields returned by the current backend.
@@ -75,6 +84,13 @@ export interface PPMPItemApi {
   projectType: string
   preProcurementConference: boolean
 
+  recommendedModeOfProcurement: string
+  startOfProcurementActivity: string
+  endOfProcurementActivity: string
+  expectedDeliveryImplementationPeriod: string
+  sourceOfFunds: string
+  attachedSupportingDocuments: string
+
   quantity: number
   unitPrice: number
   estimatedBudget: number
@@ -82,6 +98,7 @@ export interface PPMPItemApi {
 }
 
 export interface PPMPDetailApi extends PPMPListApi {
+  createdByPosition: string | null
   items: PPMPItemApi[]
 }
 
@@ -106,6 +123,13 @@ export interface UpdatePPMPItemRequest {
   generalDescriptionAndObjective: string
   projectType: string
   preProcurementConference: boolean
+
+  recommendedModeOfProcurement: string
+  startOfProcurementActivity: string
+  endOfProcurementActivity: string
+  expectedDeliveryImplementationPeriod: string
+  sourceOfFunds: string
+  attachedSupportingDocuments: string
 
   quantity: number
   unitPrice: number

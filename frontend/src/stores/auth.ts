@@ -29,10 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
       return false
     }
 
-    return (
-      new Date(session.value.expiresAtUtc).getTime() >
-      Date.now()
-    )
+    return new Date(session.value.sessionExpiresAtUtc).getTime() > Date.now()
   })
 
   const roles = computed(
@@ -67,22 +64,23 @@ export const useAuthStore = defineStore('auth', () => {
 
       const parsed = JSON.parse(stored) as AuthSession
 
-      const expiration = new Date(parsed.expiresAtUtc).getTime()
+      const sessionExpiration = new Date(parsed.sessionExpiresAtUtc).getTime()
 
       if (
         !parsed.accessToken ||
+        !parsed.refreshToken ||
         !parsed.user ||
-        !parsed.expiresAtUtc ||
-        !Number.isFinite(expiration) ||
-        expiration <= Date.now()
+        !parsed.sessionExpiresAtUtc ||
+        !Number.isFinite(sessionExpiration) ||
+        sessionExpiration <= Date.now()
       ) {
-        logout()
+        logout(false)
         return
       }
 
       session.value = parsed
     } catch {
-      logout()
+      logout(false)
     }
   }
 
@@ -100,10 +98,21 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error('The server did not return an access token.')
       }
 
+      const sessionExpiration = Date.parse(response.sessionExpiresAtUtc)
+      if (
+        !response.refreshToken ||
+        !Number.isFinite(sessionExpiration) ||
+        sessionExpiration <= Date.now()
+      ) {
+        throw new Error('The server did not return a valid refresh session.')
+      }
+
       saveSession({
         accessToken: response.accessToken,
         tokenType: response.tokenType,
         expiresAtUtc: response.expiresAtUtc,
+        refreshToken: response.refreshToken,
+        sessionExpiresAtUtc: response.sessionExpiresAtUtc,
         user: response.user,
       })
     } finally {
@@ -111,9 +120,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout(): void {
+  function logout(revokeRefreshToken = true): void {
+    const refreshToken = session.value?.refreshToken
     session.value = null
     sessionStorage.removeItem(STORAGE_KEY)
+
+    if (revokeRefreshToken && refreshToken) {
+      void authService.logout(refreshToken).catch(error => {
+        console.error('Unable to revoke the refresh token during logout.', error)
+      })
+    }
   }
 
   return {

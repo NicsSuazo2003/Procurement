@@ -1,0 +1,195 @@
+@import "tailwindcss";
+
+@theme {
+  /* Typography */
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, monospace;
+
+  /* DRMC Institutional Brand Palette */
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
+  --color-brand-950: #022c22;
+
+  /* Surfaces & Borders */
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-border-subtle: #e2e8f0;
+
+  /* Radii & Shadows */
+  --radius-card: 0.875rem;
+  --radius-control: 0.625rem;
+  --shadow-card: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px -1px rgb(15 23 42 / 0.04);
+  --shadow-card-hover: 0 10px 15px -3px rgb(15 23 42 / 0.06), 0 4px 6px -4px rgb(15 23 42 / 0.04);
+}
+
+@layer base {
+  html,
+  body,
+  #app {
+    min-height: 100%;
+    background-color: var(--color-surface-muted);
+    color: var(--color-slate-900);
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
+
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+  }
+}
+
+@layer components {
+  .drmc-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  .drmc-input {
+    width: 100%;
+    min-height: 3rem;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--color-slate-300);
+    background-color: var(--color-surface);
+    font-size: 1rem;
+    line-height: 1.5rem;
+    color: var(--color-slate-900);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+
+  select.drmc-input {
+    padding-right: 2.5rem;
+  }
+
+  textarea.drmc-input {
+    min-height: 6.5rem;
+  }
+
+  .drmc-input::placeholder {
+    color: var(--color-slate-400);
+  }
+
+  .drmc-input:focus {
+    border-color: var(--color-brand-600);
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-600) 15%, transparent);
+  }
+
+  .drmc-input:disabled {
+    cursor: not-allowed;
+    background-color: var(--color-slate-50);
+    color: var(--color-slate-500);
+  }
+
+  .drmc-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-control);
+    background-color: var(--color-brand-700);
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #ffffff;
+    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+    transition: background-color 150ms ease, transform 100ms ease, opacity 150ms ease;
+  }
+
+  .drmc-btn-primary:hover:not(:disabled) {
+    background-color: var(--color-brand-800);
+  }
+
+  .drmc-btn-primary:active:not(:disabled) {
+    transform: scale(0.99);
+  }
+
+  .drmc-btn-primary:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  .drmc-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--color-slate-300);
+    background-color: var(--color-surface);
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-slate-700);
+    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.03);
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+  }
+
+  .drmc-btn-secondary:hover:not(:disabled) {
+    background-color: var(--color-slate-50);
+    border-color: var(--color-slate-400);
+    color: var(--color-slate-900);
+  }
+
+  .drmc-btn-secondary:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .drmc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 9999px;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1rem;
+    box-shadow: inset 0 0 0 1px currentColor;
+  }
+}

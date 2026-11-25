@@ -32,6 +32,7 @@ public class APPService : IAPPService
             PlanningYearId = app.PlanningYearId,
             APPReference = app.APPReference,
             Status = app.Status,
+            RevisionNo = app.RevisionNo,
             TotalEstimatedBudget = app.Categories.Sum(
                 category => category.TotalEstimatedBudget),
             CreatedAt = app.CreatedAt,
@@ -96,6 +97,7 @@ public class APPService : IAPPService
         // Only reviewed PPMPs for the selected planning year are eligible.
         var reviewedPPMPs = await _context.PPMPs
             .Include(x => x.Items)
+            .Include(x => x.Department)
             .Where(x =>
                 x.PlanningYearId == planningYearId &&
                 x.Status == "Reviewed")
@@ -114,77 +116,68 @@ public class APPService : IAPPService
                 "Please review the PPMP records before generating the APP.");
         }
 
-        await using var transaction =
-            await _context.Database.BeginTransactionAsync();
+        var now = DateTime.UtcNow;
 
-        try
+        var app = new APPEntity
         {
-            var now = DateTime.UtcNow;
+            PlanningYearId = planningYearId,
+            CreatedBy = createdBy,
 
-            var app = new APPEntity
+            // Use the selected planning year, not the server's current year.
+            APPReference =
+                $"APP-{planningYear.Year}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
+
+            Status = "Draft",
+            CreatedAt = now,
+            Categories = []
+        };
+
+        // Consolidate into APP categories.
+        // Keep each source PPMP item separate for traceability.
+        var allPPMPItems = reviewedPPMPs
+            .SelectMany(ppmp => ppmp.Items)
+            .ToList();
+
+        var groupedItems = allPPMPItems
+            .GroupBy(item => item.CategoryId);
+
+        foreach (var categoryGroup in groupedItems)
+        {
+            var appCategory = new APPCategory
             {
-                PlanningYearId = planningYearId,
-                CreatedBy = createdBy,
-
-                // Use the selected planning year, not the server's current year.
-                APPReference =
-                    $"APP-{planningYear.Year}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
-
-                Status = "Draft",
-                CreatedAt = now,
-                Categories = []
+                CategoryId = categoryGroup.Key,
+                TotalEstimatedBudget = 0,
+                Items = []
             };
 
-            // Consolidate into APP categories.
-            // Keep each source PPMP item separate for traceability.
-            var allPPMPItems = reviewedPPMPs
-                .SelectMany(ppmp => ppmp.Items)
-                .ToList();
-
-            var groupedItems = allPPMPItems
-                .GroupBy(item => item.CategoryId);
-
-            foreach (var categoryGroup in groupedItems)
+            foreach (var ppmpItem in categoryGroup)
             {
-                var appCategory = new APPCategory
-                {
-                    CategoryId = categoryGroup.Key,
-                    TotalEstimatedBudget = 0,
-                    Items = []
-                };
+                var appItem = CreateAPPItemFromPPMPItem(
+                    ppmpItem,
+                    ppmpItem.PPMP.Department.DepartmentName);
 
-                foreach (var ppmpItem in categoryGroup)
-                {
-                    var appItem = CreateAPPItemFromPPMPItem(ppmpItem);
+                appCategory.Items.Add(appItem);
 
-                    appCategory.Items.Add(appItem);
-
-                    appCategory.TotalEstimatedBudget +=
-                        appItem.EstimatedBudget;
-                }
-
-                app.Categories.Add(appCategory);
+                appCategory.TotalEstimatedBudget +=
+                    appItem.EstimatedBudget;
             }
 
-            _context.APPs.Add(app);
-
-            // Mark source PPMPs as included in the APP.
-            foreach (var ppmp in reviewedPPMPs)
-            {
-                ppmp.Status = "Included in APP";
-                ppmp.UpdatedAt = now;
-            }
-
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            return BuildAPPResult(app, reviewedPPMPs.Count);
+            app.Categories.Add(appCategory);
         }
-        catch
+
+        _context.APPs.Add(app);
+
+        // Mark source PPMPs as included in the APP.
+        foreach (var ppmp in reviewedPPMPs)
         {
-            await transaction.RollbackAsync();
-            throw;
+            ppmp.Status = "Included in APP";
+            ppmp.UpdatedAt = now;
         }
+
+        // SaveChanges is atomic and works with the configured SQL retry strategy.
+        await _context.SaveChangesAsync();
+
+        return BuildAPPResult(app, reviewedPPMPs.Count);
     }
 
     public async Task<GenerateAPPResultDto> AddReviewedPPMPsAsync(
@@ -222,6 +215,7 @@ public class APPService : IAPPService
         // Find subsequently reviewed PPMPs for this APP's planning year.
         var reviewedPPMPs = await _context.PPMPs
             .Include(x => x.Items)
+            .Include(x => x.Department)
             .Where(x =>
                 x.PlanningYearId == app.PlanningYearId &&
                 x.Status == "Reviewed")
@@ -258,62 +252,54 @@ public class APPService : IAPPService
                 "Please check their PPMP statuses and APP source records.");
         }
 
-        await using var transaction =
-            await _context.Database.BeginTransactionAsync();
+        var now = DateTime.UtcNow;
 
-        try
+        // Add each PPMP item to its matching APP category.
+        foreach (var ppmp in reviewedPPMPs)
         {
-            var now = DateTime.UtcNow;
-
-            // Add each PPMP item to its matching APP category.
-            foreach (var ppmp in reviewedPPMPs)
+            foreach (var ppmpItem in ppmp.Items)
             {
-                foreach (var ppmpItem in ppmp.Items)
+                var appCategory = app.Categories
+                    .FirstOrDefault(x =>
+                        x.CategoryId == ppmpItem.CategoryId);
+
+                // Create the category only if this APP does not have it yet.
+                if (appCategory == null)
                 {
-                    var appCategory = app.Categories
-                        .FirstOrDefault(x =>
-                            x.CategoryId == ppmpItem.CategoryId);
-
-                    // Create the category only if this APP does not have it yet.
-                    if (appCategory == null)
+                    appCategory = new APPCategory
                     {
-                        appCategory = new APPCategory
-                        {
-                            CategoryId = ppmpItem.CategoryId,
-                            TotalEstimatedBudget = 0,
-                            Items = []
-                        };
+                        CategoryId = ppmpItem.CategoryId,
+                        TotalEstimatedBudget = 0,
+                        Items = []
+                    };
 
-                        app.Categories.Add(appCategory);
-                    }
-
-                    // Keep the source PPMP item as a separate APP item.
-                    var appItem = CreateAPPItemFromPPMPItem(ppmpItem);
-
-                    appCategory.Items.Add(appItem);
-
-                    appCategory.TotalEstimatedBudget +=
-                        appItem.EstimatedBudget;
+                    app.Categories.Add(appCategory);
                 }
 
-                ppmp.Status = "Included in APP";
-                ppmp.UpdatedAt = now;
+                // Keep the source PPMP item as a separate APP item.
+                var appItem = CreateAPPItemFromPPMPItem(
+                    ppmpItem,
+                    ppmp.Department.DepartmentName);
+
+                appCategory.Items.Add(appItem);
+
+                appCategory.TotalEstimatedBudget +=
+                    appItem.EstimatedBudget;
             }
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
+            ppmp.Status = "Included in APP";
+            ppmp.UpdatedAt = now;
+        }
 
-            return BuildAPPResult(app, reviewedPPMPs.Count);
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+        // SaveChanges is atomic and works with the configured SQL retry strategy.
+        await _context.SaveChangesAsync();
+
+        return BuildAPPResult(app, reviewedPPMPs.Count);
     }
 
     private static APPItem CreateAPPItemFromPPMPItem(
-        Drmc.Procurement.Domain.Entities.Procurement.PPMPItem ppmpItem)
+        Drmc.Procurement.Domain.Entities.Procurement.PPMPItem ppmpItem,
+        string endUser)
     {
         return new APPItem
         {
@@ -323,6 +309,16 @@ public class APPService : IAPPService
             ItemType = ppmpItem.ItemType,
             Unit = ppmpItem.Unit,
             Specifications = ppmpItem.Specifications,
+            PAPCode = ppmpItem.ItemCode,
+            ProcurementProjectName = ppmpItem.ItemDescription,
+            GeneralDescription = ppmpItem.GeneralDescriptionAndObjective,
+            EndUser = endUser,
+            Classification = ppmpItem.ProjectType,
+            ModeOfProcurement = ppmpItem.RecommendedModeOfProcurement,
+            StartOfProcurementActivity = ppmpItem.StartOfProcurementActivity,
+            EndOfProcurementActivity = ppmpItem.EndOfProcurementActivity,
+            SourceOfFunds = ppmpItem.SourceOfFunds,
+            Remarks = ppmpItem.AttachedSupportingDocuments,
             TotalQuantity = ppmpItem.Quantity,
             EstimatedUnitPrice = ppmpItem.UnitPrice,
             EstimatedBudget = ppmpItem.EstimatedBudget,
@@ -366,6 +362,7 @@ public class APPService : IAPPService
             CreatedBy = app.CreatedBy,
             APPReference = app.APPReference,
             Status = app.Status,
+            RevisionNo = app.RevisionNo,
             TotalEstimatedBudget = app.Categories.Sum(
                 category => category.TotalEstimatedBudget),
             CreatedAt = app.CreatedAt,
@@ -389,6 +386,30 @@ public class APPService : IAPPService
                             ItemType = item.ItemType,
                             Unit = item.Unit,
                             Specifications = item.Specifications,
+                            PAPCode = item.PAPCode,
+                            ObjectCode = item.ObjectCode,
+                            ProcurementProjectName = item.ProcurementProjectName,
+                            GeneralDescription = item.GeneralDescription,
+                            EndUser = item.EndUser,
+                            Classification = item.Classification,
+                            ModeOfProcurement = item.ModeOfProcurement,
+                            BidEvaluationCriteria = item.BidEvaluationCriteria,
+                            MarginalizedSectorConsideration = item.MarginalizedSectorConsideration,
+                            GreenTechnicalSpecifications = item.GreenTechnicalSpecifications,
+                            TargetPRSubmissionDate = item.TargetPRSubmissionDate,
+                            StartOfProcurementActivity = item.StartOfProcurementActivity,
+                            EndOfProcurementActivity = item.EndOfProcurementActivity,
+                            SourceOfFunds = item.SourceOfFunds,
+                            MOOE = item.MOOE,
+                            CapitalOutlay = item.CapitalOutlay,
+                            MultiYearContractCost = item.MultiYearContractCost,
+                            LifeCycleCost = item.LifeCycleCost,
+                            ProcurementStrategyTools = item.ProcurementStrategyTools,
+                            ProspectiveBidders = item.ProspectiveBidders,
+                            PotentialObservers = item.PotentialObservers,
+                            ProcurementAgent = item.ProcurementAgent,
+                            CollaboratingEntities = item.CollaboratingEntities,
+                            Remarks = item.Remarks,
                             TotalQuantity = item.TotalQuantity,
                             EstimatedUnitPrice =
                                 item.EstimatedUnitPrice,

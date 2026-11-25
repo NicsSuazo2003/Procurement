@@ -17,7 +17,7 @@ public class PPMPItemConfiguration : IEntityTypeConfiguration<PPMPItem>
             .HasMaxLength(100);
 
         builder.Property(i => i.ItemDescription)
-            .HasMaxLength(500)
+            .HasMaxLength(2000)
             .IsRequired();
 
         builder.Property(i => i.ItemType)
@@ -42,6 +42,30 @@ public class PPMPItemConfiguration : IEntityTypeConfiguration<PPMPItem>
         builder.Property(i => i.PreProcurementConference)
             .IsRequired();
 
+        builder.Property(i => i.RecommendedModeOfProcurement)
+            .HasMaxLength(150)
+            .IsRequired();
+
+        builder.Property(i => i.StartOfProcurementActivity)
+            .HasMaxLength(7)
+            .IsRequired();
+
+        builder.Property(i => i.EndOfProcurementActivity)
+            .HasMaxLength(7)
+            .IsRequired();
+
+        builder.Property(i => i.ExpectedDeliveryImplementationPeriod)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.Property(i => i.SourceOfFunds)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.Property(i => i.AttachedSupportingDocuments)
+            .HasMaxLength(500)
+            .IsRequired();
+
         // Quantity and ABC
         builder.Property(i => i.Quantity)
             .HasPrecision(18, 2);
@@ -51,6 +75,11 @@ public class PPMPItemConfiguration : IEntityTypeConfiguration<PPMPItem>
 
         builder.Property(i => i.EstimatedBudget)
             .HasPrecision(18, 2);
+
+        builder.HasOne(i => i.Team)
+            .WithMany()
+            .HasForeignKey(i => i.TeamId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // PPMP relationship
         builder.HasOne(i => i.PPMP)

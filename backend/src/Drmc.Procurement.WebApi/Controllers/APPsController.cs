@@ -1,8 +1,8 @@
-
+using Drmc.Procurement.Application.Common.Messaging;
+using Drmc.Procurement.Application.Features.APP.Commands;
+using Drmc.Procurement.Application.Features.APP.DTO;
+using Drmc.Procurement.Application.Features.APP.Queries;
 using System.Security.Claims;
-
-using Drmc.Procurement.Application.Features.APP.Interfaces;
-
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,107 +11,60 @@ namespace Drmc.Procurement.WebApi.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize(Roles = "Procurement Staff,System Administrator")]
-public class APPsController : ControllerBase
+public class APPsController(IDispatcher dispatcher) : ControllerBase
 {
-    private readonly IAPPService _appService;
-
-    public APPsController(IAPPService appService)
-    {
-        _appService = appService;
-    }
-
-    private int? GetUserId()
-    {
-        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        return int.TryParse(claim, out var userId)
-            ? userId
-            : null;
-    }
-
-    // GET: api/APPs
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var result = await _appService.GetAllAsync();
+        var result = await dispatcher.Send(new GetAllAPPsQuery(), HttpContext.RequestAborted);
         return Ok(result);
     }
 
-    // GET: api/APPs/1
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var result = await _appService.GetByIdAsync(id);
-
-        if (result == null)
-        {
-            return NotFound(new
-            {
-                message = "APP not found."
-            });
-        }
-
+        var result = await dispatcher.Send(new GetAPPByIdQuery(id), HttpContext.RequestAborted);
+        if (result == null) return NotFound(new { message = "APP not found." });
         return Ok(result);
     }
 
-    // POST: api/APPs/generate/1
     [HttpPost("generate/{planningYearId:int}")]
     [Authorize(Roles = "Procurement Staff")]
     public async Task<IActionResult> Generate(int planningYearId)
     {
         var userId = GetUserId();
-
-        if (!userId.HasValue)
-        {
-            return Forbid();
-        }
-
+        if (!userId.HasValue) return Forbid();
         try
         {
-            var result = await _appService.GenerateAsync(
-                planningYearId,
-                userId.Value);
-
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = result.APPId },
-                result);
+            var result = await dispatcher.Send(new GenerateAPPCommand(planningYearId, userId.Value), HttpContext.RequestAborted);
+            return CreatedAtAction(nameof(GetById), new { id = result.APPId }, result);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
+            return BadRequest(new { message = ex.Message });
         }
     }
 
-    // POST: api/APPs/1/add-reviewed-ppmp
     [HttpPost("{id:int}/add-reviewed-ppmp")]
     [Authorize(Roles = "Procurement Staff")]
     public async Task<IActionResult> AddReviewedPPMPs(int id)
     {
         var userId = GetUserId();
-
-        if (!userId.HasValue)
-        {
-            return Forbid();
-        }
-
+        if (!userId.HasValue) return Forbid();
         try
         {
-            var result = await _appService.AddReviewedPPMPsAsync(
-                id,
-                userId.Value);
-
+            var result = await dispatcher.Send(new AddReviewedPPMPsCommand(id, userId.Value), HttpContext.RequestAborted);
             return Ok(result);
         }
         catch (InvalidOperationException ex)
         {
-            return BadRequest(new
-            {
-                message = ex.Message
-            });
+            return BadRequest(new { message = ex.Message });
         }
+    }
+
+    private int? GetUserId()
+    {
+        var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(claim, out var userId) ? userId : null;
     }
 }

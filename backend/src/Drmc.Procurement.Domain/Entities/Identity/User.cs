@@ -12,6 +12,8 @@ public class User
 
     public string FullName { get; set; } = string.Empty;
 
+    public string? Position { get; set; }
+
     public string Email { get; set; } = string.Empty;
 
     // Hashed password. Never store plain-text passwords.

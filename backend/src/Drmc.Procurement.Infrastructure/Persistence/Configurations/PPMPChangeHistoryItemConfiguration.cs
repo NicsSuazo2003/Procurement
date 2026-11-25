@@ -19,7 +19,7 @@ public class PPMPChangeHistoryItemConfiguration
             .HasMaxLength(100);
 
         builder.Property(i => i.PreviousDescription)
-            .HasMaxLength(500);
+            .HasMaxLength(2000);
 
         builder.Property(i => i.PreviousUnit)
             .HasMaxLength(50);
@@ -40,6 +40,24 @@ public class PPMPChangeHistoryItemConfiguration
         builder.Property(i => i.PreviousProjectType)
             .HasMaxLength(100);
 
+        builder.Property(i => i.PreviousRecommendedModeOfProcurement)
+            .HasMaxLength(150);
+
+        builder.Property(i => i.PreviousStartOfProcurementActivity)
+            .HasMaxLength(7);
+
+        builder.Property(i => i.PreviousEndOfProcurementActivity)
+            .HasMaxLength(7);
+
+        builder.Property(i => i.PreviousExpectedDeliveryImplementationPeriod)
+            .HasMaxLength(100);
+
+        builder.Property(i => i.PreviousSourceOfFunds)
+            .HasMaxLength(100);
+
+        builder.Property(i => i.PreviousAttachedSupportingDocuments)
+            .HasMaxLength(500);
+
         // PreviousPreProcurementConference is nullable bool.
         // No additional configuration is required.
 
@@ -48,7 +66,7 @@ public class PPMPChangeHistoryItemConfiguration
             .HasMaxLength(100);
 
         builder.Property(i => i.UpdatedDescription)
-            .HasMaxLength(500);
+            .HasMaxLength(2000);
 
         builder.Property(i => i.UpdatedUnit)
             .HasMaxLength(50);
@@ -68,6 +86,24 @@ public class PPMPChangeHistoryItemConfiguration
 
         builder.Property(i => i.UpdatedProjectType)
             .HasMaxLength(100);
+
+        builder.Property(i => i.UpdatedRecommendedModeOfProcurement)
+            .HasMaxLength(150);
+
+        builder.Property(i => i.UpdatedStartOfProcurementActivity)
+            .HasMaxLength(7);
+
+        builder.Property(i => i.UpdatedEndOfProcurementActivity)
+            .HasMaxLength(7);
+
+        builder.Property(i => i.UpdatedExpectedDeliveryImplementationPeriod)
+            .HasMaxLength(100);
+
+        builder.Property(i => i.UpdatedSourceOfFunds)
+            .HasMaxLength(100);
+
+        builder.Property(i => i.UpdatedAttachedSupportingDocuments)
+            .HasMaxLength(500);
 
         // UpdatedPreProcurementConference is nullable bool.
         // No additional configuration is required.

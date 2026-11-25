@@ -1,3 +1,4 @@
+using Drmc.Procurement.Application.Common.Messaging;
 using Drmc.Procurement.Application.Features.APP.Interfaces;
 using Drmc.Procurement.Application.Features.Auth.Interfaces;
 using Drmc.Procurement.Application.Features.Departments.Interfaces;
@@ -12,10 +13,10 @@ using Drmc.Procurement.Application.Features.Roles.Interfaces;
 using Drmc.Procurement.Application.Features.UserCategoryPreferences.Interfaces;
 using Drmc.Procurement.Application.Features.UserRoles.Interfaces;
 using Drmc.Procurement.Application.Features.Users.Interfaces;
-
 using Drmc.Procurement.Domain.Entities.Identity;
-
+using Drmc.Procurement.Infrastructure.Messaging;
 using Drmc.Procurement.Infrastructure.Persistence;
+using Drmc.Procurement.Infrastructure.Repositories.PPMPs;
 using Drmc.Procurement.Infrastructure.Services.APP;
 using Drmc.Procurement.Infrastructure.Services.Auth;
 using Drmc.Procurement.Infrastructure.Services.Departments;
@@ -24,13 +25,11 @@ using Drmc.Procurement.Infrastructure.Services.Items;
 using Drmc.Procurement.Infrastructure.Services.PlanningYearCategories;
 using Drmc.Procurement.Infrastructure.Services.PlanningYearItems;
 using Drmc.Procurement.Infrastructure.Services.PlanningYears;
-using Drmc.Procurement.Infrastructure.Services.PPMPs;
 using Drmc.Procurement.Infrastructure.Services.ProcurementCategories;
 using Drmc.Procurement.Infrastructure.Services.Roles;
 using Drmc.Procurement.Infrastructure.Services.UserCategoryPreferences;
 using Drmc.Procurement.Infrastructure.Services.UserRoles;
 using Drmc.Procurement.Infrastructure.Services.Users;
-
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -40,14 +39,10 @@ namespace Drmc.Procurement.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(
-        this IServiceCollection services,
-        IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString =
-            configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException(
-                "DefaultConnection is not configured.");
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("DefaultConnection is not configured.");
 
 #if DEBUG
         var csb = new Microsoft.Data.SqlClient.SqlConnectionStringBuilder(connectionString);
@@ -57,51 +52,34 @@ public static class DependencyInjection
         Console.WriteLine($"[DI] WinUser  = {System.Security.Principal.WindowsIdentity.GetCurrent().Name}");
 #endif
 
-        // Pooled DbContext: reuses context instances across requests
-        // and skips model-building/discovery on every request.
-        // poolSize 128 gives headroom for ~20 concurrent users x
-        // multiple in-flight requests; contexts share the underlying
-        // SQL Server connection pool (default 100 connections).
-        // IMPORTANT: register the context exactly once. A second
-        // AddDbContext/AddDbContextPool call breaks resolution.
-        services.AddDbContextPool<ApplicationDbContext>(
-            options => options.UseSqlServer(
-                connectionString,
-                sqlOptions =>
-                {
-                    sqlOptions.EnableRetryOnFailure(
-                        maxRetryCount: 5,
-                        maxRetryDelay: TimeSpan.FromSeconds(5),
-                        errorNumbersToAdd: null);
-                    sqlOptions.CommandTimeout(60);
-                }),
-            poolSize: 128);
+        services.AddDbContextPool<ApplicationDbContext>(options => options.UseSqlServer(
+            connectionString,
+            sqlOptions =>
+            {
+                sqlOptions.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(5), errorNumbersToAdd: null);
+                sqlOptions.CommandTimeout(60);
+            }), poolSize: 128);
 
-        // ---- Organisation ----
         services.AddScoped<IDepartmentService, DepartmentService>();
         services.AddScoped<IDepartmentSectionService, DepartmentSectionService>();
-
-        // ---- Planning ----
         services.AddScoped<IPlanningYearService, PlanningYearService>();
         services.AddScoped<IPlanningYearCategoryService, PlanningYearCategoryService>();
         services.AddScoped<IPlanningYearItemService, PlanningYearItemService>();
-
-        // ---- Procurement ----
         services.AddScoped<IProcurementCategoryService, ProcurementCategoryService>();
         services.AddScoped<IItemService, ItemService>();
-        services.AddScoped<IPPMPService, PPMPService>();
+        services.AddScoped<IPPMPRepository, PPMPRepository>();
+        services.AddScoped<IPPMPReferenceRepository, PPMPReferenceRepository>();
+        services.AddScoped<IPPMPReadRepository, PPMPReadRepository>();
         services.AddScoped<IAPPService, APPService>();
-
-        // ---- Identity ----
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IUserRoleService, UserRoleService>();
         services.AddScoped<IUserCategoryPreferenceService, UserCategoryPreferenceService>();
-
-        // ---- Auth ----
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
+        services.AddScoped<IDispatcher, ServiceProviderDispatcher>();
+        services.AddFeatureHandlers();
         return services;
     }
 }

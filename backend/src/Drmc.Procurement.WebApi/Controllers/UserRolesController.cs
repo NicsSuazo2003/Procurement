@@ -1,26 +1,21 @@
+using Drmc.Procurement.Application.Common.Messaging;
+using Drmc.Procurement.Application.Features.UserRoles.Commands;
 using Drmc.Procurement.Application.Features.UserRoles.DTO;
-using Drmc.Procurement.Application.Features.UserRoles.Interfaces;
+using Drmc.Procurement.Application.Features.UserRoles.Queries;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Drmc.Procurement.WebApi.Controllers;
 
 [ApiController]
 [Route("api/Users/{userId:int}/roles")]
-public class UserRolesController : ControllerBase
+public class UserRolesController(IDispatcher dispatcher) : ControllerBase
 {
-    private readonly IUserRoleService _service;
-
-    public UserRolesController(IUserRoleService service)
-    {
-        _service = service;
-    }
-
     [HttpGet]
     public async Task<IActionResult> GetUserRoles(int userId)
     {
         try
         {
-            return Ok(await _service.GetUserRolesAsync(userId));
+            return Ok(await dispatcher.Send(new GetUserRolesQuery(userId), HttpContext.RequestAborted));
         }
         catch (KeyNotFoundException ex)
         {
@@ -29,18 +24,12 @@ public class UserRolesController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> AssignRole(
-        int userId,
-        [FromBody] AssignUserRoleRequest request)
+    public async Task<IActionResult> AssignRole(int userId, [FromBody] AssignUserRoleRequest request)
     {
         try
         {
-            var result = await _service.AssignRoleAsync(userId, request);
-
-            return CreatedAtAction(
-                nameof(GetUserRoles),
-                new { userId },
-                result);
+            var result = await dispatcher.Send(new AssignUserRoleCommand(userId, request), HttpContext.RequestAborted);
+            return CreatedAtAction(nameof(GetUserRoles), new { userId }, result);
         }
         catch (KeyNotFoundException ex)
         {
@@ -55,14 +44,8 @@ public class UserRolesController : ControllerBase
     [HttpDelete("{roleId:int}")]
     public async Task<IActionResult> RemoveRole(int userId, int roleId)
     {
-        var removed = await _service.RemoveRoleAsync(userId, roleId);
-
-        if (!removed)
-            return NotFound(new
-            {
-                message = "User role assignment not found."
-            });
-
+        var removed = await dispatcher.Send(new RemoveUserRoleCommand(userId, roleId), HttpContext.RequestAborted);
+        if (!removed) return NotFound(new { message = "User role assignment not found." });
         return NoContent();
     }
 }

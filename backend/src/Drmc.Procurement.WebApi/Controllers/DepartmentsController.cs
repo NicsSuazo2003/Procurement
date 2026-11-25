@@ -1,59 +1,37 @@
+using Drmc.Procurement.Application.Common.Messaging;
+using Drmc.Procurement.Application.Features.Departments.Commands;
 using Drmc.Procurement.Application.Features.Departments.DTO;
-using Drmc.Procurement.Application.Features.Departments.Interfaces;
+using Drmc.Procurement.Application.Features.Departments.Queries;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Drmc.Procurement.WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class DepartmentsController : ControllerBase
+public class DepartmentsController(IDispatcher dispatcher) : ControllerBase
 {
-    private readonly IDepartmentService _departmentService;
-
-    public DepartmentsController(IDepartmentService departmentService)
-    {
-        _departmentService = departmentService;
-    }
-
-    // GET: api/departments
     [HttpGet]
     public async Task<ActionResult<List<DepartmentDto>>> GetAll()
     {
-        var departments = await _departmentService.GetAllAsync();
-
+        var departments = await dispatcher.Send(new GetAllDepartmentsQuery(), HttpContext.RequestAborted);
         return Ok(departments);
     }
 
-    // GET: api/departments/1
     [HttpGet("{id:int}")]
     public async Task<ActionResult<DepartmentDto>> GetById(int id)
     {
-        var department = await _departmentService.GetByIdAsync(id);
-
-        if (department is null)
-        {
-            return NotFound(new
-            {
-                message = "Department not found."
-            });
-        }
-
+        var department = await dispatcher.Send(new GetDepartmentByIdQuery(id), HttpContext.RequestAborted);
+        if (department is null) return NotFound(new { message = "Department not found." });
         return Ok(department);
     }
 
-    // POST: api/departments
     [HttpPost]
-    public async Task<ActionResult<DepartmentDto>> Create(
-        [FromBody] CreateDepartmentRequest request)
+    public async Task<ActionResult<DepartmentDto>> Create([FromBody] CreateDepartmentRequest request)
     {
         try
         {
-            var department = await _departmentService.CreateAsync(request);
-
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = department.DepartmentId },
-                department);
+            var department = await dispatcher.Send(new CreateDepartmentCommand(request), HttpContext.RequestAborted);
+            return CreatedAtAction(nameof(GetById), new { id = department.DepartmentId }, department);
         }
         catch (InvalidOperationException ex)
         {
@@ -61,24 +39,13 @@ public class DepartmentsController : ControllerBase
         }
     }
 
-    // PUT: api/departments/1
     [HttpPut("{id:int}")]
-    public async Task<ActionResult<DepartmentDto>> Update(
-        int id,
-        [FromBody] CreateDepartmentRequest request)
+    public async Task<ActionResult<DepartmentDto>> Update(int id, [FromBody] CreateDepartmentRequest request)
     {
         try
         {
-            var department = await _departmentService.UpdateAsync(id, request);
-
-            if (department is null)
-            {
-                return NotFound(new
-                {
-                    message = "Department not found."
-                });
-            }
-
+            var department = await dispatcher.Send(new UpdateDepartmentCommand(id, request), HttpContext.RequestAborted);
+            if (department is null) return NotFound(new { message = "Department not found." });
             return Ok(department);
         }
         catch (InvalidOperationException ex)
@@ -87,24 +54,11 @@ public class DepartmentsController : ControllerBase
         }
     }
 
-    // PATCH: api/departments/1/active-status
     [HttpPatch("{id:int}/active-status")]
-    public async Task<IActionResult> SetActiveStatus(
-        int id,
-        [FromBody] bool isActive)
+    public async Task<IActionResult> SetActiveStatus(int id, [FromBody] bool isActive)
     {
-        var updated = await _departmentService.SetActiveStatusAsync(
-            id,
-            isActive);
-
-        if (!updated)
-        {
-            return NotFound(new
-            {
-                message = "Department not found."
-            });
-        }
-
+        var updated = await dispatcher.Send(new SetDepartmentActiveStatusCommand(id, isActive), HttpContext.RequestAborted);
+        if (!updated) return NotFound(new { message = "Department not found." });
         return NoContent();
     }
-} 
+}

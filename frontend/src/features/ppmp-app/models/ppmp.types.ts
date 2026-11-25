@@ -13,6 +13,15 @@ export interface PPMPSectionAllocation {
   quantity: number
 }
 
+export interface PPMPPlanningFields {
+  recommendedModeOfProcurement: string
+  startOfProcurementActivity: string
+  endOfProcurementActivity: string
+  expectedDeliveryImplementationPeriod: string
+  sourceOfFunds: string
+  attachedSupportingDocuments: string
+}
+
 export interface PPMPItem {
   lineId: number
 
@@ -21,6 +30,7 @@ export interface PPMPItem {
 
   // Actual procurement category ID from the planning year.
   categoryId: number
+  teamId: number | null
 
   // Legacy/display properties retained for compatibility.
   code: string
@@ -34,6 +44,13 @@ export interface PPMPItem {
   generalDescriptionAndObjective?: string
   projectType?: string
   preProcurementConference?: boolean
+
+  recommendedModeOfProcurement: string
+  startOfProcurementActivity: string
+  endOfProcurementActivity: string
+  expectedDeliveryImplementationPeriod: string
+  sourceOfFunds: string
+  attachedSupportingDocuments: string
 
   quantity: number
   unitPrice: number
