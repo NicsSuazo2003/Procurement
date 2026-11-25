@@ -3,6 +3,7 @@ using Drmc.Procurement.Application.Features.PPMPs.DTO;
 using Drmc.Procurement.Application.Features.PPMPs.Interfaces;
 using Drmc.Procurement.Application.Features.PPMPs;
 using Drmc.Procurement.Domain.Entities.Procurement;
+using System.Globalization;
 
 namespace Drmc.Procurement.Application.Features.PPMPs.Commands;
 
@@ -128,6 +129,22 @@ public sealed class CreatePPMPHandler(
                 $"Sub-Unit ID {invalidSections[0]} does not exist, is inactive, or does not belong to the selected unit.");
         }
 
+        var submittedTeamIds = request.Items
+            .Where(item => item.TeamId.HasValue)
+            .Select(item => item.TeamId!.Value)
+            .Distinct()
+            .ToHashSet();
+        var validTeamIds = await referenceRepository.GetActiveTeamIdsForUserAsync(
+            command.CreatedBy,
+            request.DepartmentId,
+            submittedTeamIds,
+            cancellationToken);
+        if (submittedTeamIds.Except(validTeamIds).Any())
+        {
+            throw new InvalidOperationException(
+                "One or more items belong to a team you are not assigned to.");
+        }
+
         var ppmp = new PPMP
         {
             PPMPReference = $"PPMP-{planningYear.Year}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
@@ -205,11 +222,57 @@ public sealed class CreatePPMPHandler(
 
         var generalDescriptionAndObjective = itemRequest.GeneralDescriptionAndObjective.Trim();
         var projectType = PPMPProjectTypes.Normalize(itemRequest.ProjectType);
+        var sectionAllocations = itemRequest.SectionAllocations ??
+                                 new List<CreatePPMPSectionAllocationRequest>();
 
         if (string.IsNullOrWhiteSpace(generalDescriptionAndObjective))
         {
             throw new InvalidOperationException(
                 "General description and objective are required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(itemRequest.RecommendedModeOfProcurement))
+        {
+            throw new InvalidOperationException(
+                "Recommended mode of procurement is required.");
+        }
+
+        if (!IsValidProcurementMonth(itemRequest.StartOfProcurementActivity))
+        {
+            throw new InvalidOperationException(
+                "A valid start month for procurement activity is required.");
+        }
+
+        if (!IsValidProcurementMonth(itemRequest.EndOfProcurementActivity))
+        {
+            throw new InvalidOperationException(
+                "A valid end month for procurement activity is required.");
+        }
+
+        var startMonth = DateTime.ParseExact(
+            itemRequest.StartOfProcurementActivity,
+            "yyyy-MM",
+            CultureInfo.InvariantCulture);
+        var endMonth = DateTime.ParseExact(
+            itemRequest.EndOfProcurementActivity,
+            "yyyy-MM",
+            CultureInfo.InvariantCulture);
+        if (endMonth < startMonth)
+        {
+            throw new InvalidOperationException(
+                "Procurement activity cannot end before it starts.");
+        }
+
+        if (string.IsNullOrWhiteSpace(itemRequest.ExpectedDeliveryImplementationPeriod))
+        {
+            throw new InvalidOperationException(
+                "Expected delivery or implementation period is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(itemRequest.SourceOfFunds))
+        {
+            throw new InvalidOperationException(
+                "Source of funds is required.");
         }
 
         if (string.IsNullOrWhiteSpace(itemDescription) ||
@@ -219,14 +282,13 @@ public sealed class CreatePPMPHandler(
                 "Item description and unit are required.");
         }
 
-        if (itemRequest.SectionAllocations == null ||
-            itemRequest.SectionAllocations.Count == 0)
+        if (sectionAllocations.Count == 0)
         {
             throw new InvalidOperationException(
                 $"Item '{itemDescription}' must have at least one sub-unit allocation.");
         }
 
-        if (itemRequest.SectionAllocations
+        if (sectionAllocations
             .GroupBy(allocation => allocation.SectionId)
             .Any(group => group.Count() > 1))
         {
@@ -234,14 +296,14 @@ public sealed class CreatePPMPHandler(
                 $"Item '{itemDescription}' contains duplicate sub-unit allocations.");
         }
 
-        var allocationTotal = itemRequest.SectionAllocations.Sum(allocation => allocation.Quantity);
+        var allocationTotal = sectionAllocations.Sum(allocation => allocation.Quantity);
         if (allocationTotal != itemRequest.Quantity)
         {
             throw new InvalidOperationException(
                 $"Section allocation quantities for '{itemDescription}' must equal its total quantity.");
         }
 
-        foreach (var allocation in itemRequest.SectionAllocations)
+        foreach (var allocation in sectionAllocations)
         {
             if (allocation.Quantity <= 0)
             {
@@ -261,6 +323,7 @@ public sealed class CreatePPMPHandler(
         {
             ItemId = itemId,
             CategoryId = itemRequest.CategoryId,
+            TeamId = itemRequest.TeamId,
             ItemCode = itemCode,
             ItemDescription = itemDescription,
             ItemType = itemType,
@@ -281,7 +344,7 @@ public sealed class CreatePPMPHandler(
             EstimatedBudget = itemBudget
         };
 
-        foreach (var allocation in itemRequest.SectionAllocations)
+        foreach (var allocation in sectionAllocations)
         {
             ppmpItem.SectionAllocations.Add(new PPMPSectionAllocation
             {
@@ -291,5 +354,15 @@ public sealed class CreatePPMPHandler(
         }
 
         return ppmpItem;
+    }
+
+    private static bool IsValidProcurementMonth(string? value)
+    {
+        return DateTime.TryParseExact(
+            value,
+            "yyyy-MM",
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.None,
+            out _);
     }
 }

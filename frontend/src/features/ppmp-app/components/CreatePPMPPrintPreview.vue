@@ -3,172 +3,189 @@ import type { CreatePPMPViewModel } from '../viewmodels/useCreatePPMPViewModel'
 
 type PrintPreviewViewModel = Pick<
   CreatePPMPViewModel,
-  | 'activeCategories'
-  | 'categoryTotal'
+  | 'printCategories'
+  | 'printCategoryTotal'
   | 'currentDepartment'
   | 'form'
   | 'formatCurrency'
   | 'getDescription'
-  | 'getItemsForCategory'
+  | 'getItemsForPrintCategory'
   | 'getProjectType'
   | 'currentUserName'
+  | 'currentUserPosition'
 >
 
 const props = defineProps<{ viewModel: PrintPreviewViewModel }>()
 const {
-  activeCategories,
-  categoryTotal,
+  printCategories,
+  printCategoryTotal,
   currentDepartment,
   form,
   formatCurrency,
   getDescription,
-  getItemsForCategory,
+  getItemsForPrintCategory,
   getProjectType,
   currentUserName,
+  currentUserPosition,
 } = props.viewModel
 
 function formatMonth(month: string): string {
   const match = /^(\d{4})-(\d{2})$/.exec(month)
-  return match ? `${match[2]}/${match[1]}` : month || '—'
+  return match ? `${match[2]}/${match[1]}` : month || ''
 }
 </script>
 
 <template>
-  <!-- PRINT DOCUMENTS -->
+  <!-- PRINT DOCUMENTS (Matches HOP-QR-PRO-001 Excel Template) -->
   <section
-    v-for="category in activeCategories"
+    v-for="category in printCategories"
     :key="`doc-${category.categoryId}`"
     class="ppmp-document hidden bg-white print:block"
   >
+    <!-- TOP HEADER + DOCUMENT CONTROL BOX -->
     <div class="ppmp-header">
-      <div class="ppmp-header__meta-right">
-        <div>Reference Code:</div>
-        <div class="ppmp-header__meta-value">HOP-QR-PRO-001</div>
-        <div class="ppmp-header__meta-spacer"></div>
-        <div>Revision No.:</div>
-        <div class="ppmp-header__meta-value">0</div>
-        <div class="ppmp-header__meta-spacer"></div>
-        <div>Effective Date:</div>
-        <div class="ppmp-header__meta-value">January 1, 2026</div>
-      </div>
-
-      <div class="ppmp-header__republic">Republic of the Philippines</div>
-      <div class="ppmp-header__agency">DAVAO REGIONAL MEDICAL CENTER</div>
-      <div class="ppmp-header__title">
-        PROJECT PROCUREMENT MANAGEMENT PLAN (PPMP) NO.
-        <span class="ppmp-header__placeholder">___</span>
-      </div>
-
-      <div class="ppmp-header__info-grid">
-        <div class="ppmp-header__info-row">
-          <span class="ppmp-header__info-label">Fiscal Year :</span>
-          <span class="ppmp-header__info-value">{{ form.planningYear || '' }}</span>
+      <div class="ppmp-header__center">
+        <div class="ppmp-header__republic">Republic of the Philippines</div>
+        <div class="ppmp-header__dept">Department of Health</div>
+        <div class="ppmp-header__agency">DAVAO REGIONAL MEDICAL CENTER</div>
+        <div class="ppmp-header__title">
+          PROJECT PROCUREMENT MANAGEMENT PLAN (PPMP) NO.
+          <span class="ppmp-header__underline">______</span>
         </div>
-        <div class="ppmp-header__info-row">
-          <span class="ppmp-header__info-label">End-User or Implementing Unit :</span>
-          <span class="ppmp-header__info-value">
-            {{ currentDepartment?.departmentName ?? form.department ?? '' }}
+        <div class="mt-1 text-xs font-bold uppercase tracking-wide">
+          {{ category.categoryName }}
+        </div>
+
+        <div class="ppmp-header__status-row">
+          <span class="ppmp-status-option">
+            <span class="ppmp-checkbox">✓</span> INDICATIVE
+          </span>
+          <span class="ppmp-status-option">
+            <span class="ppmp-checkbox">&nbsp;</span> FINAL
           </span>
         </div>
-        <div class="ppmp-header__info-row">
-          <span class="ppmp-header__info-label">Category :</span>
-          <span class="ppmp-header__info-value">{{ category.categoryName }}</span>
-        </div>
+      </div>
+
+      <!-- Top-Right Reference Box (Matches N1:N9 in Excel) -->
+      <table class="ppmp-doc-control">
+        <tbody>
+          <tr>
+            <td>
+              <div class="ppmp-doc-control__label">Reference Code:</div>
+              <div class="ppmp-doc-control__value">HOP-QR-PRO-001</div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="ppmp-doc-control__label">Revision No.:</div>
+              <div class="ppmp-doc-control__value">0</div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="ppmp-doc-control__label">Effective Date:</div>
+              <div class="ppmp-doc-control__value">January 1, 2026</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- FISCAL YEAR & END-USER UNIT (Rows 14-15 in Excel) -->
+    <div class="ppmp-meta-lines">
+      <div class="ppmp-meta-row">
+        <span class="ppmp-meta-label">Fiscal Year :</span>
+        <span class="ppmp-meta-value">{{ form.planningYear || '' }}</span>
+      </div>
+      <div class="ppmp-meta-row">
+        <span class="ppmp-meta-label">End-User or Implementing Unit:</span>
+        <span class="ppmp-meta-value ppmp-meta-value--wide">
+          {{ currentDepartment?.departmentName ?? form.department ?? '' }}
+        </span>
       </div>
     </div>
 
     <div
       v-if="
-        getItemsForCategory(category.categoryId).filter((item) => Number(item.quantity) > 0)
+        getItemsForPrintCategory(category.categoryId).filter((item) => Number(item.quantity) > 0)
           .length === 0
       "
       class="ppmp-empty-note"
     >
-      No items with quantities in this category.
+      No items with quantities in this category ({{ category.categoryName }}).
     </div>
 
+    <!-- MAIN 14-COLUMN TABLE (Matches Rows 18-21 in Excel) -->
     <div v-else class="ppmp-table-wrap">
       <table class="ppmp-table">
         <colgroup>
-          <col style="width: 12%" />
-          <col style="width: 7%" />
-          <col style="width: 4%" />
-          <col style="width: 5%" />
-          <col style="width: 6%" />
-          <col style="width: 7%" />
-          <col style="width: 6%" />
-          <col style="width: 7%" />
-          <col style="width: 7%" />
-          <col style="width: 8%" />
-          <col style="width: 6%" />
-          <col style="width: 9%" />
-          <col style="width: 8%" />
-          <col style="width: 8%" />
+          <col style="width: 19%" /><!-- Col A: General Description -->
+          <col style="width: 7%" /><!-- Col B: Type -->
+          <col style="width: 5%" /><!-- Col C: Quantity -->
+          <col style="width: 5%" /><!-- Col D: Unit of Issue -->
+          <col style="width: 7%" /><!-- Col E: ABC/unit -->
+          <col style="width: 8%" /><!-- Col F: Mode -->
+          <col style="width: 5%" /><!-- Col G: Pre-Proc -->
+          <col style="width: 6%" /><!-- Col H: Start -->
+          <col style="width: 6%" /><!-- Col I: End -->
+          <col style="width: 7%" /><!-- Col J: Delivery -->
+          <col style="width: 5%" /><!-- Col K: Source of Funds -->
+          <col style="width: 8%" /><!-- Col L: Estimated Budget -->
+          <col style="width: 6%" /><!-- Col M: Supporting Docs -->
+          <col style="width: 6%" /><!-- Col N: Remarks -->
         </colgroup>
 
         <thead>
+          <!-- Row 18: Group Headers (A18:G18, H18:J18, K18:L18, M18:M19, N18:N19) -->
           <tr class="ppmp-head-group">
-            <th colspan="5">PROCUREMENT PROJECT DETAILS</th>
-            <th>RECOMMENDED MODE OF PROCUREMENT</th>
-            <th>PRE-PROCUREMENT CONFERENCE (YES / NO)</th>
+            <th colspan="7">PROCUREMENT PROJECT DETAILS</th>
             <th colspan="3">PROJECTED TIMELINE (MM/YYYY)</th>
             <th colspan="2">FUNDING DETAILS</th>
-            <th>ATTACHED SUPPORTING DOCUMENTS</th>
-            <th>REMARKS</th>
+            <th rowspan="2">ATTACHED SUPPORTING DOCUMENTS</th>
+            <th rowspan="2">REMARKS</th>
           </tr>
+
+          <!-- Row 19: Column Titles -->
           <tr class="ppmp-head-col">
             <th>General Description and Objective of the Project to be Procured</th>
-            <th>Type of the Project to be Procured</th>
-            <th>Quantity and Size</th>
-            <th>Unit of Issue</th>
-            <th>ABC / unit</th>
-            <th></th>
-            <th></th>
+            <th>Type of the Project to be Procured<br />(Goods, Infrastructure, Consulting)</th>
+            <th colspan="3">Quantity and Size of the Project to be Procured</th>
+            <th>Recommended Mode of Procurement</th>
+            <th>Pre-Procurement Conference, if applicable (Yes/No)</th>
             <th>Start of Procurement Activity</th>
             <th>End of Procurement Activity</th>
             <th>Expected Delivery / Implementation Period</th>
             <th>Source of Funds</th>
             <th>Estimated Budget / Authorized Budgetary Allocation (PhP)</th>
-            <th></th>
-            <th></th>
           </tr>
+
+          <!-- Row 20: Column 1..12 Numbers -->
           <tr class="ppmp-head-cols-num">
-            <th>Column 1</th>
-            <th>Column 2</th>
-            <th>Column 3</th>
-            <th></th>
-            <th></th>
-            <th>Column 4</th>
-            <th>Column 5</th>
-            <th>Column 6</th>
-            <th>Column 7</th>
-            <th>Column 8</th>
-            <th>Column 9</th>
-            <th>Column 10</th>
-            <th>Column 11</th>
-            <th>Column 12</th>
+            <th rowspan="2">Column 1</th>
+            <th rowspan="2">Column 2</th>
+            <th colspan="3">Column 3</th>
+            <th rowspan="2">Column 4</th>
+            <th rowspan="2">Column 5</th>
+            <th rowspan="2">Column 6</th>
+            <th rowspan="2">Column 7</th>
+            <th rowspan="2">Column 8</th>
+            <th rowspan="2">Column 9</th>
+            <th rowspan="2">Column 10</th>
+            <th rowspan="2">Column 11</th>
+            <th rowspan="2">Column 12</th>
           </tr>
+
+          <!-- Row 21: Sub-headers under Column 3 (C21:E21) -->
           <tr class="ppmp-head-sub">
-            <th></th>
-            <th></th>
             <th>Quantity</th>
             <th>Unit of Issue</th>
             <th>ABC/unit</th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th></th>
           </tr>
         </thead>
 
         <tbody>
           <tr
-            v-for="item in getItemsForCategory(category.categoryId).filter(
+            v-for="item in getItemsForPrintCategory(category.categoryId).filter(
               (entry) => Number(entry.quantity) > 0,
             )"
             :key="item.lineId"
@@ -178,7 +195,7 @@ function formatMonth(month: string): string {
               <div class="ppmp-item-name">
                 {{ getDescription(item) }}
               </div>
-              <div class="ppmp-item-spec">
+              <div v-if="item.sectionAllocations?.length" class="ppmp-item-spec">
                 Sub-Unit allocations:
                 <span
                   v-for="(allocation, allocationIndex) in item.sectionAllocations"
@@ -193,7 +210,7 @@ function formatMonth(month: string): string {
             </td>
 
             <td class="ppmp-cell ppmp-cell--center">
-              {{ getProjectType(item) || '—' }}
+              {{ getProjectType(item) || 'Goods' }}
             </td>
 
             <td class="ppmp-cell ppmp-cell--center">
@@ -209,24 +226,27 @@ function formatMonth(month: string): string {
             </td>
 
             <td class="ppmp-cell ppmp-cell--center">
-              {{ item.recommendedModeOfProcurement || '—' }}
+              {{ item.recommendedModeOfProcurement || '' }}
             </td>
 
             <td class="ppmp-cell ppmp-cell--center">
-              {{ item.preProcurementConference === true ? 'Yes' : 'No' }}
+              {{ item.preProcurementConference === true ? 'YES' : 'NO' }}
             </td>
 
             <td class="ppmp-cell ppmp-cell--center">
               {{ formatMonth(item.startOfProcurementActivity) }}
             </td>
+
             <td class="ppmp-cell ppmp-cell--center">
               {{ formatMonth(item.endOfProcurementActivity) }}
             </td>
+
             <td class="ppmp-cell ppmp-cell--center">
-              {{ item.expectedDeliveryImplementationPeriod || '—' }}
+              {{ item.expectedDeliveryImplementationPeriod || '' }}
             </td>
+
             <td class="ppmp-cell ppmp-cell--center">
-              {{ item.sourceOfFunds || '—' }}
+              {{ item.sourceOfFunds || 'GAA' }}
             </td>
 
             <td class="ppmp-cell ppmp-cell--right ppmp-cell--budget">
@@ -234,15 +254,23 @@ function formatMonth(month: string): string {
             </td>
 
             <td class="ppmp-cell ppmp-cell--center">
-              {{ item.attachedSupportingDocuments || '—' }}
+              {{ item.attachedSupportingDocuments || '' }}
             </td>
-            <td class="ppmp-cell ppmp-cell--center">{{ item.category }}</td>
+
+            <!-- Column 12 (Remarks): Category Name in Excel template -->
+            <td class="ppmp-cell ppmp-cell--center">
+              {{ category.categoryName }}
+            </td>
           </tr>
 
+          <!-- Blank Spacer Row + TOTAL BUDGET Row (Row 26 in Excel) -->
+          <tr class="ppmp-spacer-row">
+            <td colspan="14">&nbsp;</td>
+          </tr>
           <tr class="ppmp-total-row">
             <td colspan="11" class="ppmp-total-label">TOTAL BUDGET:</td>
             <td class="ppmp-total-value">
-              {{ formatCurrency(categoryTotal(category.categoryId)) }}
+              {{ formatCurrency(printCategoryTotal(category.categoryId)) }}
             </td>
             <td colspan="2"></td>
           </tr>
@@ -250,16 +278,17 @@ function formatMonth(month: string): string {
       </table>
     </div>
 
+    <!-- SIGNATURES (Matches Rows 29-36 in Excel) -->
     <div class="ppmp-signatures">
       <div class="ppmp-signature-col">
         <div class="ppmp-signature-label">Prepared by:</div>
+        <div class="ppmp-signature-space"></div>
+        <div class="ppmp-signature-name">{{ currentUserName }}</div>
         <div class="ppmp-signature-line"></div>
-        <div class="ppmp-signature-name">
-          {{ currentUserName }}
-        </div>
         <div class="ppmp-signature-role">Signature over Printed Name</div>
-        <div class="ppmp-signature-name"></div>
+        <div class="ppmp-signature-line ppmp-signature-line--spaced"></div>
         <div class="ppmp-signature-role">Designation</div>
+        <div class="ppmp-signature-role">{{ currentUserPosition }}</div>
         <div class="ppmp-signature-role">
           [{{
             currentDepartment?.departmentName ?? form.department ?? 'End-User or Implementing Unit'
@@ -270,10 +299,11 @@ function formatMonth(month: string): string {
 
       <div class="ppmp-signature-col">
         <div class="ppmp-signature-label">Submitted by:</div>
+        <div class="ppmp-signature-space"></div>
+        <div class="ppmp-signature-name">&nbsp;</div>
         <div class="ppmp-signature-line"></div>
-        <div class="ppmp-signature-name"></div>
         <div class="ppmp-signature-role">Signature over Printed Name</div>
-        <div class="ppmp-signature-name"></div>
+        <div class="ppmp-signature-line ppmp-signature-line--spaced"></div>
         <div class="ppmp-signature-role">Designation</div>
         <div class="ppmp-signature-role">[Head of the End-User or Implementing Unit]</div>
         <div class="ppmp-signature-date">Date : ____________</div>
@@ -284,267 +314,307 @@ function formatMonth(month: string): string {
 
 <style scoped>
 .ppmp-document {
-  border: 1px solid #94a3b8;
-  overflow-x: auto;
-}
-
-.ppmp-header {
-  position: relative;
-  padding: 16px 24px 20px;
-  border-bottom: 1px solid #94a3b8;
-  text-align: center;
   font-family: Arial, Helvetica, sans-serif;
+  color: #000;
+  background: #fff;
 }
 
-.ppmp-header__meta-right {
-  position: absolute;
-  top: 12px;
-  right: 16px;
-  width: 150px;
-  text-align: left;
-  font-size: 9px;
-  line-height: 1.35;
-  color: #334155;
+/* HEADER */
+.ppmp-header {
+  display: grid;
+  grid-template-columns: 150px 1fr 150px;
+  align-items: start;
+  padding-top: 4px;
 }
 
-.ppmp-header__meta-value {
-  font-weight: 600;
-  color: #0f172a;
-}
-
-.ppmp-header__meta-spacer {
-  height: 8px;
+.ppmp-header__center {
+  grid-column: 2;
+  text-align: center;
+  padding-top: 8px;
 }
 
 .ppmp-header__republic {
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: 10pt;
+  line-height: 1.25;
+}
+
+.ppmp-header__dept {
+  font-size: 10pt;
+  line-height: 1.25;
 }
 
 .ppmp-header__agency {
-  margin-top: 2px;
-  font-size: 15px;
+  font-size: 12pt;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: #0f172a;
+  line-height: 1.3;
 }
 
 .ppmp-header__title {
-  margin-top: 10px;
-  font-size: 12px;
+  margin-top: 8px;
+  font-size: 10.5pt;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  color: #0f172a;
 }
 
-.ppmp-header__placeholder {
+.ppmp-header__underline {
+  display: inline-block;
+  min-width: 48px;
+}
+
+.ppmp-header__status-row {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  gap: 36px;
+  font-size: 9.5pt;
+  font-weight: 700;
+}
+
+.ppmp-status-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ppmp-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  border: 1px solid #000;
+  font-size: 9pt;
+  line-height: 1;
+}
+
+/* TOP-RIGHT DOCUMENT CONTROL BOX (N1:N9) */
+.ppmp-doc-control {
+  grid-column: 3;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+  text-align: left;
+}
+
+.ppmp-doc-control td {
+  border: 1px solid #000;
+  padding: 3px 6px;
+  line-height: 1.25;
+}
+
+.ppmp-doc-control__label {
   font-weight: 400;
 }
 
-.ppmp-header__info-grid {
-  margin-top: 14px;
-  text-align: left;
-  font-size: 11px;
-}
-
-.ppmp-header__info-row {
-  display: flex;
-  gap: 6px;
-  padding: 1px 0;
-}
-
-.ppmp-header__info-label {
-  min-width: 200px;
+.ppmp-doc-control__value {
   font-weight: 700;
-  color: #0f172a;
 }
 
-.ppmp-header__info-value {
-  border-bottom: 1px solid #94a3b8;
-  min-width: 260px;
+/* FISCAL YEAR & END-USER UNIT */
+.ppmp-meta-lines {
+  margin: 10px 0 8px;
+  font-size: 9.5pt;
+}
+
+.ppmp-meta-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.ppmp-meta-label {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ppmp-meta-value {
+  display: inline-block;
+  min-width: 110px;
+  border-bottom: 1px solid #000;
   padding: 0 6px;
-  color: #0f172a;
+  font-weight: 600;
 }
 
+.ppmp-meta-value--wide {
+  min-width: 280px;
+}
+
+/* TABLE */
 .ppmp-table {
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 9.5px;
-  color: #0f172a;
+  font-size: 8pt;
+  color: #000;
 }
 
 .ppmp-table th,
 .ppmp-table td {
-  border: 1px solid #475569;
+  border: 1px solid #000;
   padding: 3px 4px;
-  vertical-align: middle;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .ppmp-head-group th {
-  background: #e2e8f0;
-  font-size: 8.5px;
+  background: #d9e1f2;
+  font-size: 7.5pt;
   font-weight: 700;
   text-align: center;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
   line-height: 1.2;
 }
 
-.ppmp-head-col th,
-.ppmp-head-cols-num th,
-.ppmp-head-sub th {
-  background: #f1f5f9;
-  font-size: 8px;
-  font-weight: 600;
+.ppmp-head-col th {
+  background: #ededed;
+  font-size: 7.5pt;
+  font-weight: 700;
   text-align: center;
   line-height: 1.15;
 }
 
 .ppmp-head-cols-num th {
-  font-style: italic;
-  font-weight: 500;
-  color: #475569;
+  background: #f9fafb;
+  font-size: 7pt;
+  font-weight: 700;
+  text-align: center;
 }
 
 .ppmp-head-sub th {
-  background: #f8fafc;
+  background: #ededed;
+  font-size: 7pt;
+  font-weight: 700;
+  text-align: center;
 }
 
 .ppmp-row td.ppmp-cell {
-  vertical-align: top;
-  font-size: 9.5px;
+  vertical-align: middle;
+  font-size: 8pt;
+  line-height: 1.25;
+}
+
+.ppmp-cell--desc {
+  vertical-align: top !important;
+  text-align: left;
+  padding: 4px 5px;
 }
 
 .ppmp-cell--center {
   text-align: center;
-  vertical-align: middle;
 }
 
 .ppmp-cell--right {
   text-align: right;
-  vertical-align: middle;
   white-space: nowrap;
-}
-
-.ppmp-cell--desc {
-  padding: 4px 5px;
-}
-
-.ppmp-cell--muted {
-  color: #94a3b8;
-  vertical-align: middle;
 }
 
 .ppmp-cell--budget {
   font-weight: 700;
-  color: #065f46;
 }
 
 .ppmp-item-name {
-  font-weight: 700;
-  color: #0f172a;
-  line-height: 1.2;
+  font-weight: 400;
 }
 
 .ppmp-item-spec {
-  margin-top: 2px;
-  font-size: 8.5px;
-  color: #475569;
-  line-height: 1.25;
+  margin-top: 3px;
+  font-size: 7pt;
+  color: #334155;
+}
+
+.ppmp-spacer-row td {
+  height: 10px;
+  padding: 0;
 }
 
 .ppmp-total-row td {
-  background: #f1f5f9;
   font-weight: 700;
-  font-size: 10px;
-  padding: 6px;
+  font-size: 8.5pt;
+  padding: 4px 6px;
 }
 
 .ppmp-total-label {
   text-align: right;
-  letter-spacing: 0.03em;
 }
 
 .ppmp-total-value {
   text-align: right;
-  color: #065f46;
-  font-size: 11px;
   white-space: nowrap;
 }
 
 .ppmp-empty-note {
-  padding: 20px;
+  padding: 16px;
   text-align: center;
-  font-size: 12px;
-  color: #64748b;
-  border-top: 1px solid #cbd5e1;
+  font-size: 9pt;
+  border: 1px solid #000;
 }
 
+/* SIGNATURES */
 .ppmp-signatures {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  padding: 20px 24px 28px;
-  border-top: 1px solid #94a3b8;
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 10px;
-  color: #0f172a;
+  grid-template-columns: 260px 260px;
+  gap: 80px;
+  padding: 18px 0 8px 32px;
+  font-size: 8.5pt;
 }
 
 .ppmp-signature-col {
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 
 .ppmp-signature-label {
-  font-weight: 700;
-  margin-bottom: 12px;
-}
-
-.ppmp-signature-line {
-  height: 0;
-  border-bottom: 1px solid #475569;
-  margin: 4px 0 2px;
+  font-weight: 400;
+  margin-bottom: 18px;
 }
 
 .ppmp-signature-name {
   font-weight: 700;
   text-align: center;
-  min-height: 12px;
+  text-transform: uppercase;
+  min-height: 14px;
+}
+
+.ppmp-signature-line {
+  border-bottom: 1px solid #000;
+  margin-top: 2px;
+}
+
+.ppmp-signature-line--spaced {
+  margin-top: 16px;
 }
 
 .ppmp-signature-role {
-  font-size: 9px;
+  font-size: 8pt;
   text-align: center;
-  color: #334155;
+  line-height: 1.25;
 }
 
 .ppmp-signature-date {
-  margin-top: 10px;
-  font-size: 10px;
+  margin-top: 12px;
+  font-size: 8.5pt;
 }
 
 @media print {
   @page {
     size: A4 landscape;
-    margin: 10mm;
+    margin: 8mm;
   }
 
   .ppmp-document {
-    border: none;
-    overflow: visible;
-    page-break-inside: auto;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .ppmp-document:last-child {
+    page-break-after: auto;
+    break-after: auto;
   }
 
   .ppmp-header {
     page-break-after: avoid;
-  }
-
-  .ppmp-table {
-    font-size: 8pt;
+    break-after: avoid;
   }
 
   .ppmp-table thead {
@@ -553,11 +623,12 @@ function formatMonth(month: string): string {
 
   .ppmp-row {
     page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   .ppmp-signatures {
     page-break-inside: avoid;
-    page-break-before: avoid;
+    break-inside: avoid;
   }
 }
 </style>

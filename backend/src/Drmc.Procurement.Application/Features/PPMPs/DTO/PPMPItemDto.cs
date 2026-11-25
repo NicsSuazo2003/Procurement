@@ -8,6 +8,7 @@ public class PPMPItemDto
     public int? ItemId { get; set; }
 
     public int CategoryId { get; set; }
+    public int? TeamId { get; set; }
 
     public string CategoryName { get; set; } = string.Empty;
 

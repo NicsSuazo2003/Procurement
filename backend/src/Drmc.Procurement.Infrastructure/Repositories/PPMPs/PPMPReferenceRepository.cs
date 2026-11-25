@@ -106,4 +106,23 @@ public sealed class PPMPReferenceRepository(ApplicationDbContext context) : IPPM
                 ids.Contains(section.SectionId))
             .ToDictionaryAsync(section => section.SectionId, cancellationToken);
     }
+
+    public async Task<IReadOnlyCollection<int>> GetActiveTeamIdsForUserAsync(
+        int userId,
+        int departmentId,
+        IReadOnlyCollection<int> teamIds,
+        CancellationToken cancellationToken = default)
+    {
+        var ids = teamIds.ToArray();
+        return await context.TeamMemberships
+            .AsNoTracking()
+            .Where(membership =>
+                membership.UserId == userId &&
+                membership.IsActive &&
+                membership.Team.DepartmentId == departmentId &&
+                membership.Team.IsActive &&
+                ids.Contains(membership.TeamId))
+            .Select(membership => membership.TeamId)
+            .ToListAsync(cancellationToken);
+    }
 }

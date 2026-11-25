@@ -111,7 +111,10 @@ export function isPPMPProjectType(value: string): value is PPMPProjectType {
   return PPMP_PROJECT_TYPES.some((type) => type === value)
 }
 
-export function getPPMPTemplateDefaults(categoryName: string): PPMPPlanningFields {
+export function getPPMPTemplateDefaults(
+  categoryName: string,
+  overrides?: Partial<PPMPPlanningFields>,
+): PPMPPlanningFields {
   const schedule =
     CATEGORY_SCHEDULES[normalizeCategoryName(categoryName)] ?? JANUARY_MARCH_APRIL
 
@@ -119,6 +122,7 @@ export function getPPMPTemplateDefaults(categoryName: string): PPMPPlanningField
     recommendedModeOfProcurement: 'Public Bidding',
     ...schedule,
     sourceOfFunds: 'GAA',
-    attachedSupportingDocuments: 'Purchase Request, Market Scoping',
+    attachedSupportingDocuments: '',
+    ...overrides,
   }
 }

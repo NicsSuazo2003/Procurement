@@ -1,10 +1,22 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { Search, Plus, ClipboardList, ChevronLeft, ChevronRight } from '@lucide/vue'
-import { RouterLink } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
+import {
+  Search,
+  Plus,
+  ClipboardList,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  CheckCircle2,
+  X,
+  RotateCcw,
+  ArrowUpRight,
+} from '@lucide/vue'
 
 import { useAuthStore } from '@/stores/auth'
 import { ppmpApiService } from '../services/ppmpApiService'
+import { formatDatePH, formatPHP, getPPMPStatusStyle } from '@/shared/utilities/ppmpUiHelpers'
 
 import type { PPMPStatus } from '../models/ppmp.types'
 import type { PPMPListApi } from '../models/ppmp-api.types'
@@ -20,12 +32,13 @@ interface PPMPListRecord {
   status: PPMPStatus
 }
 
+const router = useRouter()
 const authStore = useAuthStore()
 
 // Filters
 const searchQuery = ref('')
 const selectedDepartment = ref('All Units')
-const selectedStatus = ref('All Statuses')
+const selectedStatus = ref<'All Statuses' | PPMPStatus>('All Statuses')
 
 // Page state
 const page = ref(1)
@@ -46,22 +59,12 @@ const summary = ref({
 })
 
 // Role permissions
-const isEndUser = computed(() =>
-  authStore.hasRole('End-user'),
-)
-
-const isUnitHead = computed(() =>
-  authStore.hasRole('Unit Head'),
-)
-
+const isEndUser = computed(() => authStore.hasRole('End-user'))
+const isUnitHead = computed(() => authStore.hasRole('Unit Head'))
 const canViewAllDepartments = computed(() =>
-  authStore.hasAnyRole([
-    'Procurement Staff',
-    'System Administrator',
-  ]),
+  authStore.hasAnyRole(['Procurement Staff', 'System Administrator']),
 )
 
-// Available statuses
 const statuses: Array<'All Statuses' | PPMPStatus> = [
   'All Statuses',
   'Draft',
@@ -73,16 +76,41 @@ const statuses: Array<'All Statuses' | PPMPStatus> = [
   'Included in APP',
 ]
 
-// Unit options are based on records on the current page.
 const departments = computed(() => {
   const departmentNames = [
-    ...new Set(
-      ppmpRecords.value.map(record => record.department),
-    ),
+    ...new Set(ppmpRecords.value.map((record) => record.department)),
   ].sort((a, b) => a.localeCompare(b))
 
   return ['All Units', ...departmentNames]
 })
+
+const hasActiveFilters = computed(
+  () =>
+    searchQuery.value.trim().length > 0 ||
+    selectedDepartment.value !== 'All Units' ||
+    selectedStatus.value !== 'All Statuses',
+)
+
+function resetFilters(): void {
+  searchQuery.value = ''
+  selectedDepartment.value = 'All Units'
+  selectedStatus.value = 'All Statuses'
+  page.value = 1
+}
+
+function applySummaryQuickFilter(type: 'all' | 'awaiting' | 'completed'): void {
+  searchQuery.value = ''
+  selectedDepartment.value = 'All Units'
+  page.value = 1
+
+  if (type === 'all') {
+    selectedStatus.value = 'All Statuses'
+  } else if (type === 'awaiting') {
+    selectedStatus.value = isUnitHead.value ? 'For Unit Head Approval' : 'Under Review'
+  } else {
+    selectedStatus.value = 'Reviewed'
+  }
+}
 
 function mapApiRecord(record: PPMPListApi): PPMPListRecord {
   return {
@@ -91,7 +119,7 @@ function mapApiRecord(record: PPMPListApi): PPMPListRecord {
     department: record.departmentName,
     planningYear: record.planningYear,
     dateSubmitted: record.submittedAt
-      ? formatDate(record.submittedAt)
+      ? formatDatePH(record.submittedAt)
       : 'Not submitted',
     totalItems: record.itemCount,
     estimatedBudget: record.estimatedBudget,
@@ -138,10 +166,10 @@ async function loadRecords(): Promise<void> {
     }
   } catch (error) {
     console.error('Unable to load PPMP records:', error)
-
-    errorMessage.value = error instanceof Error
-      ? error.message
-      : 'Unable to load PPMP records. Please try again.'
+    errorMessage.value =
+      error instanceof Error
+        ? error.message
+        : 'Unable to load PPMP records. Please try again.'
   } finally {
     isLoading.value = false
   }
@@ -151,8 +179,15 @@ onMounted(() => {
   void Promise.all([loadSummary(), loadRecords()])
 })
 
-// Re-fetch when status or page changes.
-watch([selectedStatus, page, pageSize], () => {
+watch([selectedStatus, pageSize], () => {
+  if (page.value !== 1) {
+    page.value = 1
+    return
+  }
+  void loadRecords()
+})
+
+watch(page, () => {
   void loadRecords()
 })
 
@@ -161,11 +196,14 @@ function goToPage(next: number): void {
   page.value = next
 }
 
-// Client-side search + department filter applied to the current page.
+function openRecord(id: number): void {
+  void router.push({ name: 'ppmp-details', params: { id } })
+}
+
 const filteredRecords = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
 
-  return ppmpRecords.value.filter(record => {
+  return ppmpRecords.value.filter((record) => {
     const matchesSearch =
       record.reference.toLowerCase().includes(query) ||
       record.department.toLowerCase().includes(query) ||
@@ -179,213 +217,220 @@ const filteredRecords = computed(() => {
     return matchesSearch && matchesDepartment
   })
 })
-
-function getStatusClass(status: PPMPStatus): string {
-  const classes: Record<PPMPStatus, string> = {
-    Draft: 'bg-slate-100 text-slate-700',
-    'For Unit Head Approval': 'bg-blue-50 text-blue-700',
-    'Approved by Unit Head': 'bg-indigo-50 text-indigo-700',
-    'Under Review': 'bg-amber-50 text-amber-700',
-    Updated: 'bg-purple-50 text-purple-700',
-    Reviewed: 'bg-emerald-50 text-emerald-700',
-    'Included in APP': 'bg-teal-50 text-teal-700',
-  }
-
-  return classes[status] ?? 'bg-slate-100 text-slate-700'
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-PH', {
-    style: 'currency',
-    currency: 'PHP',
-    maximumFractionDigits: 2,
-  }).format(amount)
-}
-
-function formatDate(value: string): string {
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return new Intl.DateTimeFormat('en-PH', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(date)
-}
 </script>
 
 <template>
-  <div class="space-y-6">
-
+  <div class="mx-auto max-w-7xl space-y-6">
     <!-- PAGE HEADING -->
     <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-      <div>
-        <div class="flex items-center gap-2">
-          <ClipboardList :size="25" class="text-emerald-700" />
-
-          <h1 class="text-2xl font-bold text-slate-900">
-            PPMP Management
-          </h1>
+      <div class="flex items-start gap-3">
+        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-600/20">
+          <ClipboardList :size="22" />
         </div>
 
-        <p class="mt-1 text-sm text-slate-500">
-          Manage and monitor Project Procurement Management Plans.
-        </p>
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900">
+            Procurement Requests
+          </h1>
+          <p class="mt-1 text-sm text-slate-500">
+            Manage and monitor Project Procurement Management Plans.
+          </p>
+        </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2.5">
         <RouterLink
           v-if="isUnitHead"
           to="/unit-head/ppmp-approvals"
-          class="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-700 px-4 py-2.5 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+          class="drmc-btn-secondary w-full sm:w-auto"
         >
-          <ClipboardList :size="18" />
+          <ClipboardList :size="17" class="text-brand-700" />
           Unit Head Approval Queue
         </RouterLink>
 
         <RouterLink
           v-if="isEndUser"
           to="/ppmp/create"
-          class="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-800"
+          class="drmc-btn-primary w-full sm:w-auto"
         >
-          <Plus :size="18" />
+          <Plus :size="17" />
           New PPMP
         </RouterLink>
       </div>
     </div>
 
-    <!-- SUMMARY -->
+    <!-- INTERACTIVE SUMMARY CARDS -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-      <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p class="text-sm text-slate-500">
-          Total Records
-        </p>
+      <button
+        type="button"
+        class="drmc-card flex items-center justify-between p-5 text-left transition hover:border-slate-300 hover:shadow-sm"
+        :class="selectedStatus === 'All Statuses' ? 'ring-2 ring-brand-600/25' : ''"
+        @click="applySummaryQuickFilter('all')"
+      >
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Total Records
+          </p>
+          <p class="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums sm:text-3xl">
+            {{ summary.total }}
+          </p>
+        </div>
+        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+          <ClipboardList :size="20" />
+        </div>
+      </button>
 
-        <p class="mt-2 text-2xl font-bold text-slate-900">
-          {{ summary.total }}
-        </p>
-      </div>
+      <button
+        type="button"
+        class="drmc-card flex items-center justify-between p-5 text-left transition hover:border-amber-300 hover:shadow-sm"
+        @click="applySummaryQuickFilter('awaiting')"
+      >
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Awaiting Action
+          </p>
+          <p class="mt-2 text-2xl font-bold tracking-tight text-amber-600 tabular-nums sm:text-3xl">
+            {{ summary.awaitingAction }}
+          </p>
+        </div>
+        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-600 ring-1 ring-inset ring-amber-600/20">
+          <Clock :size="20" />
+        </div>
+      </button>
 
-      <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p class="text-sm text-slate-500">
-          Awaiting Action
-        </p>
-
-        <p class="mt-2 text-2xl font-bold text-amber-600">
-          {{ summary.awaitingAction }}
-        </p>
-      </div>
-
-      <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <p class="text-sm text-slate-500">
-          Reviewed / Included in APP
-        </p>
-
-        <p class="mt-2 text-2xl font-bold text-emerald-700">
-          {{ summary.completedReview }}
-        </p>
-      </div>
+      <button
+        type="button"
+        class="drmc-card flex items-center justify-between p-5 text-left transition hover:border-brand-300 hover:shadow-sm"
+        @click="applySummaryQuickFilter('completed')"
+      >
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Reviewed / Included in APP
+          </p>
+          <p class="mt-2 text-2xl font-bold tracking-tight text-brand-700 tabular-nums sm:text-3xl">
+            {{ summary.completedReview }}
+          </p>
+        </div>
+        <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-600/20">
+          <CheckCircle2 :size="20" />
+        </div>
+      </button>
     </div>
 
     <!-- PPMP RECORDS -->
-    <section class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section class="drmc-card overflow-hidden">
+      <div class="border-b border-slate-200/80 p-5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="text-base font-semibold text-slate-900">
+              PPMP Records
+            </h2>
+            <p class="mt-0.5 text-xs text-slate-500">
+              Click any row to inspect details, allocations, or take workflow actions.
+            </p>
+          </div>
 
-      <div class="mb-4">
-        <h2 class="font-semibold text-slate-900">
-          PPMP Records
-        </h2>
-
-        <p class="mt-1 text-xs text-slate-500">
-          Search and filter the current page. Use the status filter
-          or page controls to narrow results across all records.
-        </p>
-      </div>
-
-      <!-- FILTERS -->
-      <div
-        :class="[
-          'grid grid-cols-1 gap-3',
-          canViewAllDepartments
-            ? 'md:grid-cols-3'
-            : 'md:grid-cols-2',
-        ]"
-      >
-        <div class="relative">
-          <Search
-            :size="18"
-            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-          />
-
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search current page..."
-            class="w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-          />
+          <button
+            v-if="hasActiveFilters"
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+            @click="resetFilters"
+          >
+            <RotateCcw :size="13" />
+            Reset filters
+          </button>
         </div>
 
-        <select
-          v-if="canViewAllDepartments"
-          v-model="selectedDepartment"
-          class="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+        <!-- FILTERS -->
+        <div
+          :class="[
+            'mt-4 grid grid-cols-1 gap-3',
+            canViewAllDepartments ? 'md:grid-cols-3' : 'md:grid-cols-2',
+          ]"
         >
-          <option
-            v-for="department in departments"
-            :key="department"
-            :value="department"
-          >
-            {{ department }}
-          </option>
-        </select>
+          <div class="relative">
+            <Search
+              :size="16"
+              class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search reference, unit, or year..."
+              class="drmc-input pl-10 pr-9"
+            />
+            <button
+              v-if="searchQuery"
+              type="button"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              title="Clear search"
+              @click="searchQuery = ''"
+            >
+              <X :size="14" />
+            </button>
+          </div>
 
-        <select
-          v-model="selectedStatus"
-          class="rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-        >
-          <option
-            v-for="status in statuses"
-            :key="status"
-            :value="status"
+          <select
+            v-if="canViewAllDepartments"
+            v-model="selectedDepartment"
+            class="drmc-input"
           >
-            {{ status }}
-          </option>
-        </select>
+            <option
+              v-for="department in departments"
+              :key="department"
+              :value="department"
+            >
+              {{ department }}
+            </option>
+          </select>
+
+          <select
+            v-model="selectedStatus"
+            class="drmc-input"
+          >
+            <option
+              v-for="status in statuses"
+              :key="status"
+              :value="status"
+            >
+              {{ status }}
+            </option>
+          </select>
+        </div>
       </div>
 
       <!-- TABLE -->
-      <div class="mt-5 overflow-x-auto">
+      <div class="overflow-x-auto">
         <table class="w-full text-left text-sm">
-          <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+          <thead class="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             <tr>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Reference No.</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Unit</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Planning Year</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Items</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Estimated Budget</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Date Submitted</th>
-              <th class="whitespace-nowrap px-4 py-3 font-semibold">Status</th>
+              <th class="whitespace-nowrap px-5 py-3.5">Reference No.</th>
+              <th class="whitespace-nowrap px-5 py-3.5">Unit</th>
+              <th class="whitespace-nowrap px-5 py-3.5">Planning Year</th>
+              <th class="whitespace-nowrap px-5 py-3.5 text-right">Items</th>
+              <th class="whitespace-nowrap px-5 py-3.5 text-right">Estimated Budget</th>
+              <th class="whitespace-nowrap px-5 py-3.5">Date Submitted</th>
+              <th class="whitespace-nowrap px-5 py-3.5">Status</th>
+              <th class="w-10 px-3 py-3.5"></th>
             </tr>
           </thead>
 
           <tbody class="divide-y divide-slate-100">
             <tr v-if="isLoading">
-              <td colspan="7" class="px-4 py-12 text-center text-sm text-slate-500">
+              <td colspan="8" class="px-5 py-14 text-center text-sm font-medium text-slate-500">
                 Loading PPMP records...
               </td>
             </tr>
 
             <tr v-else-if="errorMessage">
-              <td colspan="7" class="px-4 py-10 text-center">
-                <p class="text-sm text-red-600">
+              <td colspan="8" role="alert" class="px-5 py-10 text-center">
+                <p class="text-sm font-medium text-red-700">
                   {{ errorMessage }}
                 </p>
 
                 <button
                   type="button"
-                  class="mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800"
+                  class="drmc-btn-primary mt-3 text-xs"
                   @click="loadRecords"
                 >
                   Try Again
@@ -397,53 +442,72 @@ function formatDate(value: string): string {
               <tr
                 v-for="record in filteredRecords"
                 :key="record.id"
-                class="hover:bg-slate-50"
+                class="group cursor-pointer transition-colors hover:bg-brand-50/35"
+                @click="openRecord(record.id)"
               >
-                <td class="whitespace-nowrap px-4 py-4">
+                <td class="whitespace-nowrap px-5 py-4">
                   <RouterLink
                     :to="{ name: 'ppmp-details', params: { id: record.id } }"
-                    class="font-medium text-emerald-700 hover:underline"
+                    class="font-semibold text-brand-700 group-hover:underline"
+                    @click.stop
                   >
                     {{ record.reference }}
                   </RouterLink>
                 </td>
 
-                <td class="whitespace-nowrap px-4 py-4 text-slate-600">
+                <td class="whitespace-nowrap px-5 py-4 font-medium text-slate-800">
                   {{ record.department }}
                 </td>
 
-                <td class="px-4 py-4 text-slate-600">
-                  {{ record.planningYear }}
+                <td class="whitespace-nowrap px-5 py-4 text-slate-600 tabular-nums">
+                  FY {{ record.planningYear }}
                 </td>
 
-                <td class="px-4 py-4 text-slate-600">
+                <td class="whitespace-nowrap px-5 py-4 text-right text-slate-600 tabular-nums">
                   {{ record.totalItems }}
                 </td>
 
-                <td class="whitespace-nowrap px-4 py-4 text-slate-600">
-                  {{ formatCurrency(record.estimatedBudget) }}
+                <td class="whitespace-nowrap px-5 py-4 text-right font-semibold text-slate-900 tabular-nums">
+                  {{ formatPHP(record.estimatedBudget) }}
                 </td>
 
-                <td class="whitespace-nowrap px-4 py-4 text-slate-600">
+                <td class="whitespace-nowrap px-5 py-4 text-slate-600">
                   {{ record.dateSubmitted }}
                 </td>
 
-                <td class="whitespace-nowrap px-4 py-4">
+                <td class="whitespace-nowrap px-5 py-4">
                   <span
                     :class="[
-                      'rounded-full px-3 py-1 text-xs font-medium',
-                      getStatusClass(record.status),
+                      'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset',
+                      getPPMPStatusStyle(record.status).pill,
                     ]"
                   >
+                    <span :class="['h-1.5 w-1.5 rounded-full', getPPMPStatusStyle(record.status).dot]" />
                     {{ record.status }}
                   </span>
+                </td>
+
+                <td class="whitespace-nowrap px-3 py-4 text-right text-slate-400">
+                  <ArrowUpRight :size="16" class="inline transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-brand-700" />
                 </td>
               </tr>
 
               <tr v-if="filteredRecords.length === 0">
-                <td colspan="7" class="px-4 py-12 text-center text-sm text-slate-500">
-                  No PPMP records found on this page. Try changing the
-                  status filter or navigating to another page.
+                <td colspan="8" class="px-5 py-14 text-center">
+                  <p class="text-sm font-semibold text-slate-700">
+                    No matching PPMP records found
+                  </p>
+                  <p class="mt-1 text-xs text-slate-500">
+                    Try adjusting your search query, status filter, or page number.
+                  </p>
+                  <button
+                    v-if="hasActiveFilters"
+                    type="button"
+                    class="drmc-btn-secondary mt-4 text-xs"
+                    @click="resetFilters"
+                  >
+                    Reset all filters
+                  </button>
                 </td>
               </tr>
             </template>
@@ -452,19 +516,30 @@ function formatDate(value: string): string {
       </div>
 
       <!-- PAGINATION -->
-      <div class="mt-4 flex flex-col items-start justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center">
-        <div class="text-xs text-slate-500">
-          Showing
-          {{ filteredRecords.length }} on this page ·
-          {{ totalCount }} total ·
-          Page {{ page }} of {{ Math.max(totalPages, 1) }}
+      <div class="flex flex-col items-start justify-between gap-3 border-t border-slate-100 bg-slate-50/50 px-5 py-3.5 sm:flex-row sm:items-center">
+        <div class="flex flex-wrap items-center gap-3 text-xs text-slate-500 tabular-nums">
+          <span>
+            Showing <span class="font-semibold text-slate-700">{{ filteredRecords.length }}</span> on this page ·
+            <span class="font-semibold text-slate-700">{{ totalCount }}</span> total ·
+            Page <span class="font-semibold text-slate-700">{{ page }}</span> of {{ Math.max(totalPages, 1) }}
+          </span>
+
+          <select
+            v-model.number="pageSize"
+            aria-label="Rows per page"
+            class="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700"
+          >
+            <option :value="25">25 / page</option>
+            <option :value="50">50 / page</option>
+            <option :value="100">100 / page</option>
+          </select>
         </div>
 
         <div class="flex items-center gap-2">
           <button
             type="button"
             :disabled="page <= 1 || isLoading"
-            class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            class="drmc-btn-secondary px-3 py-1.5 text-xs"
             @click="goToPage(page - 1)"
           >
             <ChevronLeft :size="14" />
@@ -474,7 +549,7 @@ function formatDate(value: string): string {
           <button
             type="button"
             :disabled="page >= totalPages || isLoading"
-            class="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            class="drmc-btn-secondary px-3 py-1.5 text-xs"
             @click="goToPage(page + 1)"
           >
             Next

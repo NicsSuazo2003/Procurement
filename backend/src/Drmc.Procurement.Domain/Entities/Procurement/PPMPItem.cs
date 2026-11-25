@@ -11,6 +11,8 @@ public class PPMPItem
 
     public int CategoryId { get; set; }
 
+    public int? TeamId { get; set; }
+
     // Internal/catalogue information
     public string ItemCode { get; set; } = string.Empty;
 
@@ -54,6 +56,8 @@ public class PPMPItem
     public Item? Item { get; set; }
 
     public ProcurementCategory Category { get; set; } = null!;
+
+    public Drmc.Procurement.Domain.Entities.Organization.Team? Team { get; set; }
 
     public ICollection<PPMPSectionAllocation> SectionAllocations { get; set; }
         = new List<PPMPSectionAllocation>();

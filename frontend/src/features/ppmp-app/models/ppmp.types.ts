@@ -30,6 +30,7 @@ export interface PPMPItem {
 
   // Actual procurement category ID from the planning year.
   categoryId: number
+  teamId: number | null
 
   // Legacy/display properties retained for compatibility.
   code: string

@@ -76,6 +76,11 @@ public class PPMPItemConfiguration : IEntityTypeConfiguration<PPMPItem>
         builder.Property(i => i.EstimatedBudget)
             .HasPrecision(18, 2);
 
+        builder.HasOne(i => i.Team)
+            .WithMany()
+            .HasForeignKey(i => i.TeamId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // PPMP relationship
         builder.HasOne(i => i.PPMP)
             .WithMany(p => p.Items)

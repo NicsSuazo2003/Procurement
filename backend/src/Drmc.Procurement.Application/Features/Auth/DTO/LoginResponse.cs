@@ -10,5 +10,9 @@ public class LoginResponse
 
     public DateTime ExpiresAtUtc { get; set; }
 
+    public string RefreshToken { get; set; } = string.Empty;
+
+    public DateTime SessionExpiresAtUtc { get; set; }
+
     public UserDto User { get; set; } = null!;
 }

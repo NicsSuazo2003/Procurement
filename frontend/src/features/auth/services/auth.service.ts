@@ -14,4 +14,12 @@ export const authService = {
       body: JSON.stringify(credentials),
     })
   },
+
+  async logout(refreshToken: string): Promise<void> {
+    return apiRequest<void>('/Auth/logout', {
+      method: 'POST',
+      authenticated: false,
+      body: JSON.stringify({ refreshToken }),
+    })
+  },
 }

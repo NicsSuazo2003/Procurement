@@ -20,11 +20,14 @@ public class ApplicationDbContext : DbContext
     // Organization
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<DepartmentSection> DepartmentSections => Set<DepartmentSection>();
+    public DbSet<Team> Teams => Set<Team>();
+    public DbSet<TeamMembership> TeamMemberships => Set<TeamMembership>();
 
     // Identity
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     public DbSet<UserCategoryPreference> UserCategoryPreferences
     => Set<UserCategoryPreference>();

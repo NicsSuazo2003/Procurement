@@ -45,6 +45,8 @@ interface CatalogueItemDraft extends ManualItemDraft {
   catalogueItemId: number | null
 }
 
+const ADDITIONAL_SHEET_CATEGORY_ID = -1
+
 export type CreatePPMPViewModel = ReturnType<typeof useCreatePPMPViewModel>
 
 export function useCreatePPMPViewModel() {
@@ -54,6 +56,7 @@ export function useCreatePPMPViewModel() {
 
   const isEditMode = computed(() => Boolean(route.params.id))
   const currentUserName = computed(() => authStore.user?.fullName ?? '')
+  const currentUserPosition = computed(() => authStore.user?.position ?? '')
 
   async function navigateToPPMPList(): Promise<void> {
     await router.push('/ppmp')
@@ -87,8 +90,9 @@ export function useCreatePPMPViewModel() {
   const isLoadingCategories = ref(false)
 
   const activeCategoryId = ref<number | null>(null)
-  const itemEntryMode = ref<'catalogue' | 'manual'>('manual')
+  const itemEntryMode = ref<'catalogue' | 'manual'>('catalogue')
   const catalogueItems = ref<PlanningYearCatalogueItemDto[]>([])
+  const catalogueItemsCategoryId = ref<number | null>(null)
   const isLoadingCatalogueItems = ref(false)
   const catalogueSearch = ref('')
   const catalogueItemDrafts = ref<Record<number, CatalogueItemDraft>>({})
@@ -110,6 +114,12 @@ export function useCreatePPMPViewModel() {
   const activeCategories = computed(() => preferredCategories.value)
 
   const selectedItems = computed(() => form.value.items.filter((item) => Number(item.quantity) > 0))
+  const printCategories = computed(() => [
+    ...activeCategories.value,
+    ...(selectedItems.value.some((item) => item.catalogItemId === null)
+      ? [{ categoryId: ADDITIONAL_SHEET_CATEGORY_ID, categoryName: 'Additional Sheet' }]
+      : []),
+  ])
 
   const errorMessage = computed(
     () => pageError.value || errors.value[0] || masterDataError.value || '',
@@ -177,12 +187,25 @@ export function useCreatePPMPViewModel() {
     activeCategoryId.value = categoryId
     editingLineId.value = null
     pageError.value = ''
+
+    const planningYear = planningYears.value.find(
+      (year) => year.planningYearId === selectedPlanningYearId.value,
+    )
+    if (planningYear) {
+      await loadCatalogueItems(planningYear.planningYearId, categoryId)
+    }
+  }
+
+  function setItemEntryMode(mode: 'catalogue' | 'manual'): void {
+    itemEntryMode.value = mode
+    pageError.value = ''
   }
 
   async function loadCatalogueItems(planningYearId: number, categoryId: number): Promise<void> {
     const requestId = ++catalogueRequestId
     isLoadingCatalogueItems.value = true
     catalogueItems.value = []
+    catalogueItemsCategoryId.value = null
 
     try {
       const planningYear = planningYears.value.find(
@@ -196,6 +219,7 @@ export function useCreatePPMPViewModel() {
       if (requestId !== catalogueRequestId) return
 
       catalogueItems.value = result
+      catalogueItemsCategoryId.value = categoryId
       if (masterDataError.value) {
         pageError.value = masterDataError.value
       }
@@ -239,6 +263,7 @@ export function useCreatePPMPViewModel() {
     pageError.value = ''
     const draft = getCatalogueItemDraft(category.categoryId)
     const catalogueItem = catalogueItems.value.find((item) => item.itemId === draft.catalogueItemId)
+    const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/
 
     if (!catalogueItem) {
       pageError.value = 'Please select an item from the catalogue.'
@@ -251,8 +276,9 @@ export function useCreatePPMPViewModel() {
       return
     }
 
-    if (!draft.projectType.trim()) {
-      pageError.value = 'Please enter the type of project to be procured.'
+    if (!isPPMPProjectType(draft.projectType)) {
+      pageError.value =
+        'Please choose a valid project type: Goods, Infrastructure, or Consulting Services.'
       return
     }
 
@@ -266,8 +292,48 @@ export function useCreatePPMPViewModel() {
       return
     }
 
-    if (!Number.isFinite(Number(draft.unitPrice)) || Number(draft.unitPrice) < 0) {
+    if (
+      String(draft.unitPrice).trim().length === 0 ||
+      !Number.isFinite(Number(draft.unitPrice)) ||
+      Number(draft.unitPrice) < 0
+    ) {
       pageError.value = 'ABC per unit must be a valid non-negative amount.'
+      return
+    }
+
+    if (
+      Math.abs(Number(draft.unitPrice) * 100 - Math.round(Number(draft.unitPrice) * 100)) >
+      0.000001
+    ) {
+      pageError.value = 'ABC per unit must have no more than two decimal places.'
+      return
+    }
+
+    if (!draft.recommendedModeOfProcurement.trim()) {
+      pageError.value = 'Please enter the recommended mode of procurement.'
+      return
+    }
+
+    if (
+      !monthPattern.test(draft.startOfProcurementActivity) ||
+      !monthPattern.test(draft.endOfProcurementActivity)
+    ) {
+      pageError.value = 'Please enter valid start and end months for procurement activity.'
+      return
+    }
+
+    if (draft.endOfProcurementActivity < draft.startOfProcurementActivity) {
+      pageError.value = 'Procurement activity cannot end before it starts.'
+      return
+    }
+
+    if (!draft.expectedDeliveryImplementationPeriod.trim()) {
+      pageError.value = 'Please enter the expected delivery or implementation period.'
+      return
+    }
+
+    if (!draft.sourceOfFunds.trim()) {
+      pageError.value = 'Please enter the source of funds.'
       return
     }
 
@@ -278,11 +344,15 @@ export function useCreatePPMPViewModel() {
 
     const invalidAllocation = draft.sectionAllocations.some(
       (allocation) =>
-        !Number.isFinite(Number(allocation.quantity)) || Number(allocation.quantity) < 0,
+        !Number.isFinite(Number(allocation.quantity)) ||
+        Number(allocation.quantity) <= 0 ||
+        Math.abs(Number(allocation.quantity) * 100 - Math.round(Number(allocation.quantity) * 100)) >
+          0.000001,
     )
 
     if (invalidAllocation) {
-      pageError.value = 'Section quantities must be valid non-negative numbers.'
+      pageError.value =
+        'Section quantities must be positive numbers with no more than two decimal places.'
       return
     }
 
@@ -296,6 +366,7 @@ export function useCreatePPMPViewModel() {
       lineId: nextLineId++,
       catalogItemId: catalogueItem.itemId,
       categoryId: category.categoryId,
+      teamId: null,
       code: catalogueItem.itemCode,
       name: catalogueItem.itemName,
       category: category.categoryName,
@@ -325,7 +396,7 @@ export function useCreatePPMPViewModel() {
   }
 
   function getItemEntryLabel(item: PPMPItem): string {
-    return item.catalogItemId === null ? 'Manual entry' : 'Catalogue item'
+    return item.catalogItemId === null ? 'Additional Sheet item' : 'Procurement default item'
   }
 
   function getItemsForCategory(categoryId: number): PPMPItem[] {
@@ -338,6 +409,21 @@ export function useCreatePPMPViewModel() {
 
   function categoryTotal(categoryId: number): number {
     return getItemsForCategory(categoryId).reduce(
+      (sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0),
+      0,
+    )
+  }
+
+  function getItemsForPrintCategory(categoryId: number): PPMPItem[] {
+    return form.value.items.filter((item) =>
+      categoryId === ADDITIONAL_SHEET_CATEGORY_ID
+        ? item.catalogItemId === null
+        : item.categoryId === categoryId && item.catalogItemId !== null,
+    )
+  }
+
+  function printCategoryTotal(categoryId: number): number {
+    return getItemsForPrintCategory(categoryId).reduce(
       (sum, item) => sum + Number(item.quantity || 0) * Number(item.unitPrice || 0),
       0,
     )
@@ -416,6 +502,7 @@ export function useCreatePPMPViewModel() {
     pageError.value = ''
 
     const draft = getItemDraft(category.categoryId)
+    const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/
 
     if (!draft.generalDescriptionAndObjective.trim()) {
       pageError.value =
@@ -423,8 +510,9 @@ export function useCreatePPMPViewModel() {
       return
     }
 
-    if (!draft.projectType.trim()) {
-      pageError.value = 'Please enter the type of project to be procured.'
+    if (!isPPMPProjectType(draft.projectType)) {
+      pageError.value =
+        'Please choose a valid project type: Goods, Infrastructure, or Consulting Services.'
       return
     }
 
@@ -438,8 +526,48 @@ export function useCreatePPMPViewModel() {
       return
     }
 
-    if (!Number.isFinite(Number(draft.unitPrice)) || Number(draft.unitPrice) < 0) {
+    if (
+      String(draft.unitPrice).trim().length === 0 ||
+      !Number.isFinite(Number(draft.unitPrice)) ||
+      Number(draft.unitPrice) < 0
+    ) {
       pageError.value = 'ABC per unit must be a valid non-negative amount.'
+      return
+    }
+
+    if (
+      Math.abs(Number(draft.unitPrice) * 100 - Math.round(Number(draft.unitPrice) * 100)) >
+      0.000001
+    ) {
+      pageError.value = 'ABC per unit must have no more than two decimal places.'
+      return
+    }
+
+    if (!draft.recommendedModeOfProcurement.trim()) {
+      pageError.value = 'Please enter the recommended mode of procurement.'
+      return
+    }
+
+    if (
+      !monthPattern.test(draft.startOfProcurementActivity) ||
+      !monthPattern.test(draft.endOfProcurementActivity)
+    ) {
+      pageError.value = 'Please enter valid start and end months for procurement activity.'
+      return
+    }
+
+    if (draft.endOfProcurementActivity < draft.startOfProcurementActivity) {
+      pageError.value = 'Procurement activity cannot end before it starts.'
+      return
+    }
+
+    if (!draft.expectedDeliveryImplementationPeriod.trim()) {
+      pageError.value = 'Please enter the expected delivery or implementation period.'
+      return
+    }
+
+    if (!draft.sourceOfFunds.trim()) {
+      pageError.value = 'Please enter the source of funds.'
       return
     }
 
@@ -450,11 +578,15 @@ export function useCreatePPMPViewModel() {
 
     const invalidAllocation = draft.sectionAllocations.some(
       (allocation) =>
-        !Number.isFinite(Number(allocation.quantity)) || Number(allocation.quantity) < 0,
+        !Number.isFinite(Number(allocation.quantity)) ||
+        Number(allocation.quantity) <= 0 ||
+        Math.abs(Number(allocation.quantity) * 100 - Math.round(Number(allocation.quantity) * 100)) >
+          0.000001,
     )
 
     if (invalidAllocation) {
-      pageError.value = 'Section quantities must be valid non-negative numbers.'
+      pageError.value =
+        'Section quantities must be positive numbers with no more than two decimal places.'
       return
     }
 
@@ -469,6 +601,7 @@ export function useCreatePPMPViewModel() {
       lineId: nextLineId++,
       catalogItemId: null,
       categoryId: category.categoryId,
+      teamId: null,
 
       // Legacy compatibility properties.
       code: '',
@@ -655,7 +788,7 @@ export function useCreatePPMPViewModel() {
         return false
       }
 
-      if (item.preProcurementConference === undefined) {
+      if (item.preProcurementConference === null || item.preProcurementConference === undefined) {
         pageError.value = `Item ${index + 1}: Please indicate Yes or No for the pre-procurement conference.`
         return false
       }
@@ -672,6 +805,14 @@ export function useCreatePPMPViewModel() {
 
       if (!Number.isFinite(Number(item.unitPrice)) || Number(item.unitPrice) < 0) {
         pageError.value = `Item ${index + 1}: ABC per unit must be a valid non-negative amount.`
+        return false
+      }
+
+      if (
+        Math.abs(Number(item.unitPrice) * 100 - Math.round(Number(item.unitPrice) * 100)) >
+        0.000001
+      ) {
+        pageError.value = `Item ${index + 1}: ABC per unit must have no more than two decimal places.`
         return false
       }
     }
@@ -738,11 +879,14 @@ export function useCreatePPMPViewModel() {
 
       const invalidAllocation = allocations.some(
         (allocation) =>
-          !Number.isFinite(Number(allocation.quantity)) || Number(allocation.quantity) < 0,
+          !Number.isFinite(Number(allocation.quantity)) ||
+          Number(allocation.quantity) <= 0 ||
+          Math.abs(Number(allocation.quantity) * 100 -
+            Math.round(Number(allocation.quantity) * 100)) > 0.000001,
       )
 
       if (invalidAllocation) {
-        pageError.value = `Item ${index + 1}: Section quantities must be valid non-negative numbers.`
+        pageError.value = `Item ${index + 1}: Section quantities must be positive numbers with no more than two decimal places.`
         return false
       }
 
@@ -780,9 +924,12 @@ export function useCreatePPMPViewModel() {
         preferences.map((preference) => preference.planningYearCategoryId),
       )
 
-      preferredCategories.value = planningYearCategories.value.filter((category) =>
-        preferredCategoryIds.has(category.planningYearCategoryId),
-      )
+      preferredCategories.value =
+        preferences.length === 0
+          ? planningYearCategories.value
+          : planningYearCategories.value.filter((category) =>
+              preferredCategoryIds.has(category.planningYearCategoryId),
+            )
 
       hasLoadedPreferences.value = true
 
@@ -790,7 +937,12 @@ export function useCreatePPMPViewModel() {
 
       if (firstCategory) {
         activeCategoryId.value = firstCategory.categoryId
-        await loadCatalogueItems(planningYearId, firstCategory.categoryId)
+        const planningYear = planningYears.value.find(
+          (year) => year.planningYearId === planningYearId,
+        )
+        if (planningYear) {
+          await loadCatalogueItems(planningYear.planningYearId, firstCategory.categoryId)
+        }
       }
     } catch (error) {
       pageError.value =
@@ -900,6 +1052,7 @@ export function useCreatePPMPViewModel() {
         return {
           itemId: item.catalogItemId,
           categoryId: item.categoryId,
+          teamId: null,
 
           // Legacy backend compatibility fields.
           // The End-User form does not display these separately.
@@ -955,7 +1108,9 @@ export function useCreatePPMPViewModel() {
 
     if (
       shouldSubmit &&
-      !window.confirm('Are you sure you want to submit this PPMP for Unit Head approval?')
+      !window.confirm(
+        'Are you sure you want to submit this PPMP for Unit Head approval?',
+      )
     ) {
       return
     }
@@ -1019,6 +1174,7 @@ export function useCreatePPMPViewModel() {
     allocationTotal,
     cancelEditingItem,
     catalogueItems,
+    catalogueItemsCategoryId,
     catalogueSearch,
     categoryTotal,
     currentDepartment,
@@ -1037,6 +1193,7 @@ export function useCreatePPMPViewModel() {
     getItemDraft,
     getItemEntryLabel,
     getItemsForCategory,
+    getItemsForPrintCategory,
     getProjectType,
     hasLoadedPreferences,
     isAllocationBalanced,
@@ -1045,6 +1202,8 @@ export function useCreatePPMPViewModel() {
     isLoadingCategories,
     isSaving,
     itemEntryMode,
+    printCategories,
+    printCategoryTotal,
     onPlanningYearChange,
     planningYearCategories,
     planningYears,
@@ -1054,11 +1213,13 @@ export function useCreatePPMPViewModel() {
     removeItem,
     removeItemSection,
     currentUserName,
+    currentUserPosition,
     navigateToPPMPList,
     savePPMP,
     sections,
     selectCatalogueItem,
     selectCategoryTab,
+    setItemEntryMode,
     selectedItems,
     selectedItemsInCategory,
     selectedPlanningYearId,

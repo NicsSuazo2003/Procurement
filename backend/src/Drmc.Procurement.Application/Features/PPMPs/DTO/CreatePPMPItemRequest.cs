@@ -10,6 +10,8 @@ public class CreatePPMPItemRequest
     [Range(1, int.MaxValue)]
     public int CategoryId { get; set; }
 
+    public int? TeamId { get; set; }
+
     // Optional internal/catalogue information
     [StringLength(100)]
     public string ItemCode { get; set; } = string.Empty;

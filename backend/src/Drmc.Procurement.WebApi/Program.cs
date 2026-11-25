@@ -80,21 +80,6 @@ if (args.Contains("--provision-user",
         return;
     }
 
-    var expectedRoles = new Dictionary<int, string>
-    {
-        [2] = "End-user",
-        [3] = "Unit Head",
-        [4] = "Procurement Staff"
-    };
-
-    if (!expectedRoles.TryGetValue(userId, out var expectedRole))
-    {
-        Console.WriteLine(
-            "Only test user IDs 2, 3, and 4 can be provisioned.");
-
-        return;
-    }
-
     await using var provisioningApp = builder.Build();
 
     await using var scope =
@@ -141,11 +126,11 @@ if (args.Contains("--provision-user",
         .Select(ur => ur.Role.RoleName)
         .ToList();
 
-    if (assignedRoles.Count != 1 ||
-        assignedRoles[0] != expectedRole)
+    if (!assignedRoles.Contains("End-user") &&
+        !assignedRoles.Contains("Team Contributor"))
     {
         Console.WriteLine(
-            $"Expected role: {expectedRole}");
+            "The user must have the End-user or Team Contributor role.");
 
         Console.WriteLine(
             "User role assignment does not match. Provisioning stopped.");
@@ -158,7 +143,7 @@ if (args.Contains("--provision-user",
     Console.WriteLine($"User ID: {user.UserId}");
     Console.WriteLine($"Name: {user.FullName}");
     Console.WriteLine($"Email: {user.Email}");
-    Console.WriteLine($"Role: {expectedRole}");
+    Console.WriteLine($"Roles: {string.Join(", ", assignedRoles)}");
     Console.WriteLine();
 
     var password = ReadPassword("Enter new password: ");

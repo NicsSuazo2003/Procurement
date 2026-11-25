@@ -35,4 +35,10 @@ public interface IPPMPReferenceRepository
         int departmentId,
         IReadOnlyCollection<int> sectionIds,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyCollection<int>> GetActiveTeamIdsForUserAsync(
+        int userId,
+        int departmentId,
+        IReadOnlyCollection<int> teamIds,
+        CancellationToken cancellationToken = default);
 }

@@ -7,6 +7,7 @@ public class UserDto
     public string? DepartmentName { get; set; }
     public string EmployeeNumber { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
+    public string? Position { get; set; }
     public string Email { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public List<string> RoleNames { get; set; } = new();

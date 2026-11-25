@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowLeft, Save, Send, AlertCircle, FileText } from '@lucide/vue'
+import { ArrowLeft, Save, Send, AlertCircle, FileText, Printer } from '@lucide/vue'
 
 import { useCreatePPMPViewModel } from '../viewmodels/useCreatePPMPViewModel'
 import CreatePPMPItemsSection from '../components/CreatePPMPItemsSection.vue'
@@ -26,19 +26,23 @@ const {
   selectedItems,
   selectedPlanningYearId,
 } = createPPMPViewModel
+
+function printPPMP(): void {
+  window.print()
+}
 </script>
 
 <template>
-  <div class="ppmp-shell mx-auto max-w-[1600px] space-y-4 pb-24">
+  <div class="ppmp-shell mx-auto max-w-[1600px] space-y-5 pb-28">
     <!-- APPLICATION TOOLBAR -->
     <div class="print:hidden">
       <button
         type="button"
-        class="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-emerald-700"
+        class="mb-3 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-brand-700"
         @click="navigateToPPMPList"
       >
-        <ArrowLeft :size="17" />
-        Back to PPMP Management
+        <ArrowLeft :size="15" />
+        Back to Procurement Requests
       </button>
 
       <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -47,15 +51,14 @@ const {
             Create Project Procurement Management Plan
           </h1>
           <p class="mt-1 text-sm text-slate-500">
-            Manually encode proposed procurement projects and allocate each item's requested quantity
-            to your sub-units.
+            Review Procurement's default items by category, include the items your unit needs, and add unlisted requirements on the Additional Sheet.
           </p>
         </div>
 
         <span
-          class="inline-flex items-center gap-1.5 self-start rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 sm:self-auto"
+          class="inline-flex items-center gap-2 self-start rounded-full bg-brand-50 px-3.5 py-1.5 text-xs font-semibold text-brand-700 ring-1 ring-inset ring-brand-600/20 tabular-nums sm:self-auto"
         >
-          <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+          <span class="h-2 w-2 rounded-full bg-brand-600"></span>
           {{ selectedItems.length }} item(s) budgeted
         </span>
       </div>
@@ -64,7 +67,8 @@ const {
     <!-- ERROR BANNER -->
     <div
       v-if="errorMessage"
-      class="print:hidden flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+      role="alert"
+      class="print:hidden flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800"
     >
       <AlertCircle :size="18" class="mt-0.5 shrink-0 text-red-600" />
       <p class="flex-1">{{ errorMessage }}</p>
@@ -73,27 +77,27 @@ const {
     <!-- INITIAL LOADING -->
     <div
       v-if="isLoading"
-      class="print:hidden rounded-xl border border-slate-200 bg-white p-12 text-center text-sm text-slate-500 shadow-sm"
+      class="print:hidden drmc-card p-14 text-center text-sm text-slate-500"
     >
       <div
-        class="mb-3 inline-block h-8 w-8 animate-spin rounded-full border-4 border-emerald-600 border-t-transparent"
+        class="mb-3 inline-block h-8 w-8 animate-spin rounded-full border-4 border-brand-700 border-t-transparent"
       ></div>
-      <p>Loading departments and planning years...</p>
+      <p class="font-medium text-slate-600">Loading departments and planning years...</p>
     </div>
 
     <template v-else>
       <!-- PLANNING YEAR TOOLBAR -->
       <div
-        class="print:hidden sticky top-4 z-20 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-md backdrop-blur-md"
+        class="print:hidden drmc-card sticky top-4 z-20 bg-white/95 p-4 shadow-md backdrop-blur-md"
       >
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-600">
+            <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">
               Planning Year
             </label>
             <select
               v-model.number="selectedPlanningYearId"
-              class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-800 outline-none transition-all focus:border-emerald-600 focus:bg-white focus:ring-1 focus:ring-emerald-200"
+              class="drmc-input font-medium"
               :disabled="isLoadingCategories || isSaving"
               @change="onPlanningYearChange"
             >
@@ -109,11 +113,11 @@ const {
           </div>
 
           <div class="flex items-end">
-            <div class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
-              <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Unit
+            <div class="w-full rounded-xl border border-slate-200/90 bg-slate-50/70 px-3.5 py-2.5">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                End-User / Implementing Unit
               </p>
-              <p class="mt-1 text-sm font-semibold text-slate-800">
+              <p class="mt-0.5 text-sm font-semibold text-slate-800">
                 {{ currentDepartment?.departmentName ?? form.department ?? 'Not assigned' }}
               </p>
             </div>
@@ -124,19 +128,19 @@ const {
       <!-- CATEGORY LOADING -->
       <div
         v-if="isLoadingCategories"
-        class="print:hidden rounded-xl border border-slate-200 bg-white p-12 text-center text-sm text-slate-500 shadow-sm"
+        class="print:hidden drmc-card p-14 text-center text-sm text-slate-500"
       >
         <div
-          class="mb-2 inline-block h-6 w-6 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent"
+          class="mb-2.5 inline-block h-6 w-6 animate-spin rounded-full border-2 border-brand-700 border-t-transparent"
         ></div>
-        <p>Loading your preferred categories...</p>
+        <p class="font-medium text-slate-600">Loading available categories...</p>
       </div>
 
       <template v-else>
         <!-- EMPTY STATES -->
         <div
           v-if="planningYearCategories.length === 0"
-          class="print:hidden rounded-lg border border-amber-200 bg-amber-50 p-6 text-center text-sm text-amber-800"
+          class="print:hidden rounded-xl border border-amber-200 bg-amber-50/80 p-6 text-center text-sm font-medium text-amber-800"
         >
           No active categories are assigned to this planning year. Please contact the Procurement
           Office.
@@ -144,10 +148,10 @@ const {
 
         <div
           v-else-if="hasLoadedPreferences && preferredCategories.length === 0"
-          class="print:hidden rounded-lg border border-amber-200 bg-amber-50 p-6 text-center"
+          class="print:hidden rounded-xl border border-amber-200 bg-amber-50/80 p-6 text-center"
         >
           <AlertCircle class="mx-auto mb-2 h-8 w-8 text-amber-600" />
-          <h3 class="text-sm font-bold text-amber-900">No Preferred Categories Selected</h3>
+          <h3 class="text-sm font-bold text-amber-900">No Categories Visible</h3>
           <p class="mt-1 text-sm text-amber-800">
             Please configure your category preferences for this planning year before creating a
             PPMP.
@@ -156,30 +160,43 @@ const {
 
         <CreatePPMPItemsSection :view-model="createPPMPViewModel" />
 
+        <!-- HIDDEN ON SCREEN, VISIBLE ONLY IN PRINT PREVIEW -->
         <CreatePPMPPrintPreview :view-model="createPPMPViewModel" />
 
-        <!-- ACTION BAR -->
+        <!-- STICKY ACTION BAR -->
         <div
-          class="print:hidden sticky bottom-4 z-20 mt-6 rounded-xl border border-slate-300 bg-white/95 p-4 shadow-lg backdrop-blur-md"
+          class="print:hidden drmc-card sticky bottom-4 z-20 mt-6 border-slate-300/90 bg-white/95 p-4 shadow-lg backdrop-blur-md"
         >
-          <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div class="flex items-center gap-3">
-              <FileText :size="20" class="shrink-0 text-emerald-600" />
+              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-600/20">
+                <FileText :size="19" />
+              </div>
               <div>
-                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                   Estimated Total Budget
                 </p>
-                <p class="text-lg font-black text-emerald-700">
+                <p class="text-lg font-extrabold text-brand-700 tabular-nums">
                   {{ formatCurrency(estimatedBudget) }}
                 </p>
               </div>
             </div>
 
-            <div class="flex items-center justify-end gap-2">
+            <div class="flex flex-wrap items-center justify-end gap-2.5">
+              <button
+                type="button"
+                :disabled="selectedItems.length === 0"
+                class="drmc-btn-secondary w-full sm:w-auto"
+                @click="printPPMP"
+              >
+                <Printer :size="16" />
+                Print PPMP
+              </button>
+
               <button
                 type="button"
                 :disabled="isSaving || selectedItems.length === 0"
-                class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                class="drmc-btn-secondary w-full sm:w-auto"
                 @click="savePPMP(false)"
               >
                 <Save :size="16" />
@@ -189,11 +206,11 @@ const {
               <button
                 type="button"
                 :disabled="isSaving || selectedItems.length === 0"
-                class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                class="drmc-btn-primary w-full sm:w-auto"
                 @click="savePPMP(true)"
               >
                 <Send :size="16" />
-                {{ isSaving ? 'Saving...' : 'Submit for Approval' }}
+                {{ isSaving ? 'Saving...' : 'Submit for Unit Head Approval' }}
               </button>
             </div>
           </div>

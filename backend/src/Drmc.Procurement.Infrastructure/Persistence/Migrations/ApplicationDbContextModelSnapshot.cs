@@ -573,6 +573,47 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                     b.ToTable("ProcurementCategoryAuditLogs", (string)null);
                 });
 
+            modelBuilder.Entity("Drmc.Procurement.Domain.Entities.Identity.RefreshToken", b =>
+                {
+                    b.Property<int>("RefreshTokenId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RefreshTokenId"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RevokedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("RefreshTokenId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens", (string)null);
+                });
+
             modelBuilder.Entity("Drmc.Procurement.Domain.Entities.Identity.Role", b =>
                 {
                     b.Property<int>("RoleId")
@@ -633,6 +674,10 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                     b.Property<string>("PasswordHash")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Position")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("UserId");
 
@@ -758,6 +803,65 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("DepartmentSections", (string)null);
+                });
+
+            modelBuilder.Entity("Drmc.Procurement.Domain.Entities.Organization.Team", b =>
+                {
+                    b.Property<int>("TeamId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TeamId"));
+
+                    b.Property<int>("DepartmentId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("TeamCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TeamName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("TeamId");
+
+                    b.HasIndex("DepartmentId", "TeamCode")
+                        .IsUnique();
+
+                    b.ToTable("Teams", (string)null);
+                });
+
+            modelBuilder.Entity("Drmc.Procurement.Domain.Entities.Organization.TeamMembership", b =>
+                {
+                    b.Property<int>("TeamMembershipId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TeamMembershipId"));
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("TeamId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("TeamMembershipId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("TeamId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("TeamMemberships", (string)null);
                 });
 
             modelBuilder.Entity("Drmc.Procurement.Domain.Entities.Planning.PlanningYear", b =>
@@ -1073,6 +1177,9 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                         .HasMaxLength(7)
                         .HasColumnType("nvarchar(7)");
 
+                    b.Property<int?>("TeamId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Unit")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1089,6 +1196,8 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                     b.HasIndex("ItemId");
 
                     b.HasIndex("PPMPId");
+
+                    b.HasIndex("TeamId");
 
                     b.HasIndex("PPMPId", "CategoryId");
 
@@ -1293,6 +1402,17 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                     b.Navigation("ChangedByUser");
                 });
 
+            modelBuilder.Entity("Drmc.Procurement.Domain.Entities.Identity.RefreshToken", b =>
+                {
+                    b.HasOne("Drmc.Procurement.Domain.Entities.Identity.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Drmc.Procurement.Domain.Entities.Identity.User", b =>
                 {
                     b.HasOne("Drmc.Procurement.Domain.Entities.Organization.Department", "Department")
@@ -1350,6 +1470,36 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Department");
+                });
+
+            modelBuilder.Entity("Drmc.Procurement.Domain.Entities.Organization.Team", b =>
+                {
+                    b.HasOne("Drmc.Procurement.Domain.Entities.Organization.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Department");
+                });
+
+            modelBuilder.Entity("Drmc.Procurement.Domain.Entities.Organization.TeamMembership", b =>
+                {
+                    b.HasOne("Drmc.Procurement.Domain.Entities.Organization.Team", "Team")
+                        .WithMany("Memberships")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Drmc.Procurement.Domain.Entities.Identity.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Drmc.Procurement.Domain.Entities.Planning.PlanningYearCategory", b =>
@@ -1466,11 +1616,18 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Drmc.Procurement.Domain.Entities.Organization.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Category");
 
                     b.Navigation("Item");
 
                     b.Navigation("PPMP");
+
+                    b.Navigation("Team");
                 });
 
             modelBuilder.Entity("Drmc.Procurement.Domain.Entities.Procurement.PPMPSectionAllocation", b =>
@@ -1532,6 +1689,11 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Drmc.Procurement.Domain.Entities.Organization.Department", b =>
                 {
                     b.Navigation("Sections");
+                });
+
+            modelBuilder.Entity("Drmc.Procurement.Domain.Entities.Organization.Team", b =>
+                {
+                    b.Navigation("Memberships");
                 });
 
             modelBuilder.Entity("Drmc.Procurement.Domain.Entities.Planning.PlanningYear", b =>
