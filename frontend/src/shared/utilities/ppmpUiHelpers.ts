@@ -40,6 +40,21 @@ export function getPPMPStatusStyle(status: string): StatusBadgeStyle {
         pill: 'bg-teal-50 text-teal-800 ring-teal-600/25',
         dot: 'bg-teal-600',
       }
+    case 'prepared':
+      return {
+        pill: 'bg-amber-50 text-amber-800 ring-amber-600/25',
+        dot: 'bg-amber-500',
+      }
+    case 'recommended':
+      return {
+        pill: 'bg-purple-50 text-purple-700 ring-purple-600/25',
+        dot: 'bg-purple-500',
+      }
+    case 'approved':
+      return {
+        pill: 'bg-brand-50 text-brand-700 ring-brand-600/25',
+        dot: 'bg-brand-600',
+      }
     default:
       return {
         pill: 'bg-slate-100 text-slate-700 ring-slate-600/20',

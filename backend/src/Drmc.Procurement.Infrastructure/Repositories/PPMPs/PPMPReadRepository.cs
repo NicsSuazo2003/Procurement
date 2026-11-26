@@ -100,6 +100,7 @@ public sealed class PPMPReadRepository(ApplicationDbContext context) : IPPMPRead
         {
             PPMPId = ppmp.PPMPId,
             PPMPReference = ppmp.PPMPReference,
+            PPMPType = ppmp.PPMPType,
             DepartmentId = ppmp.DepartmentId,
             DepartmentName = ppmp.Department.DepartmentName,
             PlanningYearId = ppmp.PlanningYearId,
@@ -128,6 +129,7 @@ public sealed class PPMPReadRepository(ApplicationDbContext context) : IPPMPRead
             {
                 PPMPId = ppmp.PPMPId,
                 PPMPReference = ppmp.PPMPReference,
+                PPMPType = ppmp.PPMPType,
                 DepartmentId = ppmp.DepartmentId,
                 DepartmentName = ppmp.Department.DepartmentName,
                 PlanningYearId = ppmp.PlanningYearId,

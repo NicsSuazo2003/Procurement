@@ -28,6 +28,18 @@ public sealed class PPMPReferenceRepository(ApplicationDbContext context) : IPPM
                 planningYear => planningYear.PlanningYearId == planningYearId,
                 cancellationToken);
 
+    public Task<bool> HasInitialPPMPAsync(
+        int departmentId,
+        int planningYearId,
+        CancellationToken cancellationToken = default) =>
+        context.PPMPs
+            .AsNoTracking()
+            .AnyAsync(
+                ppmp => ppmp.DepartmentId == departmentId &&
+                        ppmp.PlanningYearId == planningYearId &&
+                        ppmp.PPMPType == PPMPTypes.Initial,
+                cancellationToken);
+
     public Task<User?> GetActiveUserAsync(
         int userId,
         CancellationToken cancellationToken = default) =>

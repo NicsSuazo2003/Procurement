@@ -6,6 +6,7 @@ type PrintPreviewViewModel = Pick<
   | 'printCategories'
   | 'printCategoryTotal'
   | 'currentDepartment'
+  | 'submissionType'
   | 'form'
   | 'formatCurrency'
   | 'getDescription'
@@ -20,6 +21,7 @@ const {
   printCategories,
   printCategoryTotal,
   currentDepartment,
+  submissionType,
   form,
   formatCurrency,
   getDescription,
@@ -96,6 +98,10 @@ function formatMonth(month: string): string {
       <div class="ppmp-meta-row">
         <span class="ppmp-meta-label">Fiscal Year :</span>
         <span class="ppmp-meta-value">{{ form.planningYear || '' }}</span>
+      </div>
+      <div class="ppmp-meta-row">
+        <span class="ppmp-meta-label">PPMP Submission Type:</span>
+        <span class="ppmp-meta-value">{{ submissionType }}</span>
       </div>
       <div class="ppmp-meta-row">
         <span class="ppmp-meta-label">End-User or Implementing Unit:</span>

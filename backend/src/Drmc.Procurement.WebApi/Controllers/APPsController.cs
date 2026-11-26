@@ -2,6 +2,7 @@ using Drmc.Procurement.Application.Common.Messaging;
 using Drmc.Procurement.Application.Features.APP.Commands;
 using Drmc.Procurement.Application.Features.APP.DTO;
 using Drmc.Procurement.Application.Features.APP.Queries;
+using Drmc.Procurement.Domain.Entities.APP;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,10 @@ namespace Drmc.Procurement.WebApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Procurement Staff,System Administrator")]
+[Authorize(Roles = "Procurement Staff,System Administrator," +
+                   APPApprovalRoles.PreparedBy + "," +
+                   APPApprovalRoles.RecommendedBy + "," +
+                   APPApprovalRoles.ApprovedBy)]
 public class APPsController(IDispatcher dispatcher) : ControllerBase
 {
     [HttpGet]
@@ -59,6 +63,72 @@ public class APPsController(IDispatcher dispatcher) : ControllerBase
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id:int}/prepare")]
+    [Authorize(Roles = APPApprovalRoles.PreparedBy)]
+    public async Task<IActionResult> Prepare(int id)
+    {
+        var userId = GetUserId();
+        if (!userId.HasValue) return Forbid();
+        try
+        {
+            return Ok(await dispatcher.Send(
+                new PrepareAPPCommand(id, userId.Value),
+                HttpContext.RequestAborted));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id:int}/recommend")]
+    [Authorize(Roles = APPApprovalRoles.RecommendedBy)]
+    public async Task<IActionResult> Recommend(int id)
+    {
+        var userId = GetUserId();
+        if (!userId.HasValue) return Forbid();
+        try
+        {
+            return Ok(await dispatcher.Send(
+                new RecommendAPPCommand(id, userId.Value),
+                HttpContext.RequestAborted));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("{id:int}/approve")]
+    [Authorize(Roles = APPApprovalRoles.ApprovedBy)]
+    public async Task<IActionResult> Approve(int id)
+    {
+        var userId = GetUserId();
+        if (!userId.HasValue) return Forbid();
+        try
+        {
+            return Ok(await dispatcher.Send(
+                new ApproveAPPCommand(id, userId.Value),
+                HttpContext.RequestAborted));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { message = ex.Message });
         }
     }
 

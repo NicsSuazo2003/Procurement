@@ -6,7 +6,10 @@ import type {
   DepartmentSectionDto,
   PlanningYearCatalogueItemDto,
 } from '../models/master-data.types'
-import type { CreatePPMPRequest } from '../models/ppmp-api.types'
+import type {
+  CreatePPMPRequest,
+  PPMPSubmissionType,
+} from '../models/ppmp-api.types'
 import {
   getPPMPTemplateDefaults,
   isPPMPProjectType,
@@ -85,6 +88,7 @@ export function useCreatePPMPViewModel() {
   } = usePPMPMasterData()
 
   const selectedPlanningYearId = ref<number | null>(null)
+  const submissionType = ref<PPMPSubmissionType>('Initial')
   const preferredCategories = ref<PlanningYearCategoryDto[]>([])
   const hasLoadedPreferences = ref(false)
   const isLoadingCategories = ref(false)
@@ -1042,6 +1046,7 @@ export function useCreatePPMPViewModel() {
     return {
       departmentId,
       planningYearId,
+      ppmpType: submissionType.value,
       items: selectedItems.value.map((item) => {
         const quantity = allocationTotal(item)
 
@@ -1223,6 +1228,7 @@ export function useCreatePPMPViewModel() {
     selectedItems,
     selectedItemsInCategory,
     selectedPlanningYearId,
+    submissionType,
     startEditingItem,
     toggleAllocationRow,
     updateItemField,

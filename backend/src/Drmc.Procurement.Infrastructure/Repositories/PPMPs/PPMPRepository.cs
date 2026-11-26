@@ -2,6 +2,7 @@ using Drmc.Procurement.Application.Features.PPMPs.Interfaces;
 using Drmc.Procurement.Domain.Entities.Procurement;
 using Drmc.Procurement.Domain.Entities.Audit;
 using Drmc.Procurement.Infrastructure.Persistence;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace Drmc.Procurement.Infrastructure.Repositories.PPMPs;
@@ -70,7 +71,23 @@ public sealed class PPMPRepository(ApplicationDbContext context) : IPPMPReposito
     public async Task SaveNewAsync(PPMP ppmp, CancellationToken cancellationToken = default)
     {
         context.PPMPs.Add(ppmp);
-        await context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+            when (ex.GetBaseException() is SqlException
+                  {
+                      Number: 2601 or 2627
+                  } sqlException &&
+                  sqlException.Message.Contains(
+                      "IX_PPMPs_DepartmentId_PlanningYearId",
+                      StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "An initial PPMP already exists for this unit and planning year. Submit a Supplemental PPMP for additional needs.",
+                ex);
+        }
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>

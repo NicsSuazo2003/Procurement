@@ -25,6 +25,7 @@ const {
   savePPMP,
   selectedItems,
   selectedPlanningYearId,
+  submissionType,
 } = createPPMPViewModel
 
 function printPPMP(): void {
@@ -90,7 +91,7 @@ function printPPMP(): void {
       <div
         class="print:hidden drmc-card sticky top-4 z-20 bg-white/95 p-4 shadow-md backdrop-blur-md"
       >
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-500">
               Planning Year
@@ -121,6 +122,27 @@ function printPPMP(): void {
                 {{ currentDepartment?.departmentName ?? form.department ?? 'Not assigned' }}
               </p>
             </div>
+          </div>
+
+          <div>
+            <label
+              for="ppmp-submission-type"
+              class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-slate-500"
+            >
+              PPMP Submission Type
+            </label>
+            <select
+              id="ppmp-submission-type"
+              v-model="submissionType"
+              class="drmc-input font-medium"
+              :disabled="isSaving"
+            >
+              <option value="Initial">Initial annual PPMP</option>
+              <option value="Supplemental">Supplemental / Revised PPMP</option>
+            </select>
+            <p class="mt-1 text-[11px] text-slate-500">
+              One initial PPMP is allowed per unit and planning year; supplemental submissions may be repeated.
+            </p>
           </div>
         </div>
       </div>

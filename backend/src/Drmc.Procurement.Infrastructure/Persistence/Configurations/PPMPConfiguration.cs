@@ -16,6 +16,11 @@ public class PPMPConfiguration : IEntityTypeConfiguration<PPMP>
             .HasMaxLength(50)
             .IsRequired();
 
+        builder.Property(p => p.PPMPType)
+            .HasMaxLength(20)
+            .HasDefaultValue(PPMPTypes.Initial)
+            .IsRequired();
+
         builder.HasIndex(p => p.PPMPReference)
             .IsUnique();
 
@@ -49,6 +54,10 @@ public class PPMPConfiguration : IEntityTypeConfiguration<PPMP>
         // Composite index for GetAllAsync(departmentId) and list views
         // that combine a department filter with a status filter.
         builder.HasIndex(p => new { p.DepartmentId, p.Status });
+
+        builder.HasIndex(p => new { p.DepartmentId, p.PlanningYearId })
+            .IsUnique()
+            .HasFilter("[PPMPType] = 'Initial'");
 
         // Filtered index for the two sidebar badge queries.
         // 99% of PPMPs are in other statuses (Reviewed, Included in APP,

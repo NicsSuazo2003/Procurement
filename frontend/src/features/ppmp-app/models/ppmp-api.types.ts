@@ -1,7 +1,10 @@
 
+export type PPMPSubmissionType = 'Initial' | 'Supplemental'
+
 export interface CreatePPMPRequest {
   departmentId: number
   planningYearId: number
+  ppmpType: PPMPSubmissionType
   items: CreatePPMPItemRequest[]
 }
 
@@ -43,6 +46,7 @@ export interface CreatePPMPSectionAllocationRequest {
 export interface PPMPListApi {
   ppmpId: number
   ppmpReference: string
+  ppmpType: PPMPSubmissionType
   departmentId: number
   departmentName: string
   planningYearId: number

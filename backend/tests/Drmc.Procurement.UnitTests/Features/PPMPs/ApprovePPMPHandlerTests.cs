@@ -252,6 +252,12 @@ public sealed class ApprovePPMPHandlerTests
             CancellationToken cancellationToken = default) =>
             Task.FromResult<Drmc.Procurement.Domain.Entities.Planning.PlanningYear?>(null);
 
+        public Task<bool> HasInitialPPMPAsync(
+            int departmentId,
+            int planningYearId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
         public Task<IReadOnlyCollection<int>> GetActiveCategoryIdsAsync(
             int planningYearId,
             IReadOnlyCollection<int> categoryIds,
@@ -268,6 +274,13 @@ public sealed class ApprovePPMPHandlerTests
         public Task<IReadOnlyCollection<int>> GetActiveDepartmentSectionIdsAsync(
             int departmentId,
             IReadOnlyCollection<int> sectionIds,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyCollection<int>>([]);
+
+        public Task<IReadOnlyCollection<int>> GetActiveTeamIdsForUserAsync(
+            int userId,
+            int departmentId,
+            IReadOnlyCollection<int> teamIds,
             CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyCollection<int>>([]);
     }

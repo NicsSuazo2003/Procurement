@@ -10,6 +10,8 @@
 
         public string PPMPReference { get; set; } = string.Empty;
 
+        public string PPMPType { get; set; } = PPMPTypes.Initial;
+
         public int DepartmentId { get; set; }
 
         public int PlanningYearId { get; set; }

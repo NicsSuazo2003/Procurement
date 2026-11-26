@@ -4,6 +4,7 @@ public class PPMPDto
 {
     public int PPMPId { get; set; }
     public string PPMPReference { get; set; } = string.Empty;
+    public string PPMPType { get; set; } = string.Empty;
 
     public int DepartmentId { get; set; }
     public string DepartmentName { get; set; } = string.Empty;

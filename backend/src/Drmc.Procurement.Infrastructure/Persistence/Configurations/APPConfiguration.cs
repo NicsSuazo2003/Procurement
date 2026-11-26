@@ -39,5 +39,20 @@ public class APPConfiguration : IEntityTypeConfiguration<APP>
             .WithMany()
             .HasForeignKey(a => a.CreatedBy)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(a => a.PreparedByUser)
+            .WithMany()
+            .HasForeignKey(a => a.PreparedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(a => a.RecommendedByUser)
+            .WithMany()
+            .HasForeignKey(a => a.RecommendedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(a => a.ApprovedByUser)
+            .WithMany()
+            .HasForeignKey(a => a.ApprovedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -26,4 +26,22 @@ export const appApiService = {
       method: 'POST',
     })
   },
+
+  markPrepared(id: number): Promise<APPDetail> {
+    return apiRequest<APPDetail>(`/APPs/${id}/prepare`, {
+      method: 'POST',
+    })
+  },
+
+  markRecommended(id: number): Promise<APPDetail> {
+    return apiRequest<APPDetail>(`/APPs/${id}/recommend`, {
+      method: 'POST',
+    })
+  },
+
+  markApproved(id: number): Promise<APPDetail> {
+    return apiRequest<APPDetail>(`/APPs/${id}/approve`, {
+      method: 'POST',
+    })
+  },
 }

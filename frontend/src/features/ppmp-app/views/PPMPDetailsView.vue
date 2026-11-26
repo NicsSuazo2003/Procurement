@@ -14,6 +14,8 @@ import {
   ChevronDown,
   Printer,
   ChevronsUpDown,
+  Eye,
+  X,
 } from '@lucide/vue'
 
 import { useAuthStore } from '@/stores/auth'
@@ -30,6 +32,10 @@ interface WorkflowStageConfig {
   activeBadge: string
   ring: string
 }
+
+type PPMPItemRecord = PPMPDetailApi['items'][number]
+type PPMPHistoryRecord = PPMPChangeHistoryApi
+type PPMPHistoryItemRecord = PPMPChangeHistoryApi['items'][number]
 
 const route = useRoute()
 const router = useRouter()
@@ -52,6 +58,18 @@ const changeHistoryError = ref('')
 
 // Expanded spreadsheet rows
 const expandedItems = ref<number[]>([])
+
+// Per-item full details modal state
+const selectedItemDetail = ref<{
+  item: PPMPItemRecord
+  categoryName: string
+} | null>(null)
+
+// Per-history-item full comparison modal state
+const selectedHistoryItemDetail = ref<{
+  history: PPMPHistoryRecord
+  item: PPMPHistoryItemRecord
+} | null>(null)
 
 // In-app workflow confirmation dialog state
 const pendingConfirmAction = ref<{
@@ -222,8 +240,27 @@ const groupedItems = computed(() => {
 })
 
 // --------------------------------------------------
-// SPREADSHEET HELPERS
+// SPREADSHEET & DETAIL MODAL HELPERS
 // --------------------------------------------------
+
+function openItemDetailModal(item: PPMPItemRecord, categoryName: string): void {
+  selectedItemDetail.value = { item, categoryName }
+}
+
+function closeItemDetailModal(): void {
+  selectedItemDetail.value = null
+}
+
+function openHistoryItemDetailModal(
+  history: PPMPHistoryRecord,
+  item: PPMPHistoryItemRecord,
+): void {
+  selectedHistoryItemDetail.value = { history, item }
+}
+
+function closeHistoryItemDetailModal(): void {
+  selectedHistoryItemDetail.value = null
+}
 
 function toggleItem(itemId: number): void {
   if (expandedItems.value.includes(itemId)) {
@@ -246,19 +283,19 @@ function isItemExpanded(itemId: number): boolean {
   return expandedItems.value.includes(itemId)
 }
 
-function getItemAllocationTotal(item: PPMPDetailApi['items'][number]): number {
+function getItemAllocationTotal(item: PPMPItemRecord): number {
   return item.sectionAllocations.reduce(
     (total, allocation) => total + Number(allocation.quantity || 0),
     0,
   )
 }
 
-function getPrintField(item: PPMPDetailApi['items'][number], key: string): string {
+function getPrintField(item: PPMPItemRecord, key: string): string {
   const value = (item as unknown as Record<string, unknown>)[key]
   return typeof value === 'string' ? value : ''
 }
 
-function getPrintPreProc(item: PPMPDetailApi['items'][number]): string {
+function getPrintPreProc(item: PPMPItemRecord): string {
   const value = (item as unknown as Record<string, unknown>).preProcurementConference
   if (value === true) return 'YES'
   if (value === false) return 'NO'
@@ -314,6 +351,8 @@ async function loadPPMP(): Promise<void> {
   changeHistoryError.value = ''
   changeHistory.value = []
   expandedItems.value = []
+  selectedItemDetail.value = null
+  selectedHistoryItemDetail.value = null
 
   try {
     ppmp.value = await ppmpApiService.getById(id)
@@ -767,6 +806,15 @@ function formatHistoricalText(value: string | null): string {
 
           <div>
             <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              PPMP Submission Type
+            </p>
+            <p class="mt-1 font-semibold text-slate-900">
+              {{ ppmp.ppmpType }}
+            </p>
+          </div>
+
+          <div>
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
               Planning Year
             </p>
             <p class="mt-1 font-semibold text-slate-900 tabular-nums">
@@ -881,7 +929,7 @@ function formatHistoricalText(value: string | null): string {
                 Requested Items
               </h2>
               <p class="mt-0.5 text-xs text-slate-500">
-                Spreadsheet-style view of the submitted PPMP items.
+                Spreadsheet-style view of the submitted PPMP items. Click <strong>Details</strong> to inspect full item descriptions and planning info.
               </p>
             </div>
           </div>
@@ -935,10 +983,10 @@ function formatHistoricalText(value: string | null): string {
 
             <!-- SPREADSHEET TABLE -->
             <div class="overflow-x-auto">
-              <table class="w-full min-w-[850px] border-collapse text-left text-sm">
+              <table class="w-full min-w-[920px] border-collapse text-left text-sm">
                 <thead class="bg-slate-100/80 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                   <tr>
-                    <th class="w-[38%] border-b border-slate-200 px-4 py-3">
+                    <th class="w-[34%] border-b border-slate-200 px-4 py-3">
                       Item Description
                     </th>
                     <th class="border-b border-slate-200 px-4 py-3">
@@ -953,8 +1001,8 @@ function formatHistoricalText(value: string | null): string {
                     <th class="border-b border-slate-200 px-4 py-3 text-right">
                       Estimated Total
                     </th>
-                    <th class="w-28 border-b border-slate-200 px-4 py-3 text-center">
-                      Sub-Units
+                    <th class="w-44 border-b border-slate-200 px-4 py-3 text-center">
+                      Actions
                     </th>
                   </tr>
                 </thead>
@@ -966,27 +1014,23 @@ function formatHistoricalText(value: string | null): string {
                   >
                     <!-- ITEM ROW -->
                     <tr class="transition-colors hover:bg-slate-50/80">
-                      <td class="px-4 py-3.5">
-                        <p class="font-semibold text-slate-900">
+                      <td class="max-w-xs px-4 py-3.5">
+                        <p
+                          class="line-clamp-2 font-semibold text-slate-900"
+                          :title="item.itemDescription"
+                        >
                           {{ item.itemDescription }}
                         </p>
 
-                        <div class="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
+                        <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
                           <span class="font-mono">
                             Code: {{ item.itemCode || '—' }}
                           </span>
 
                           <span v-if="item.itemType">
-                            Type: {{ item.itemType }}
+                            · {{ item.itemType }}
                           </span>
                         </div>
-
-                        <p
-                          v-if="item.specifications"
-                          class="mt-1 whitespace-pre-wrap text-xs text-slate-500"
-                        >
-                          {{ item.specifications }}
-                        </p>
                       </td>
 
                       <td class="px-4 py-3.5 text-slate-700">
@@ -1005,22 +1049,34 @@ function formatHistoricalText(value: string | null): string {
                         {{ formatPHP(item.estimatedBudget) }}
                       </td>
 
-                      <td class="px-4 py-3.5 text-center">
-                        <button
-                          type="button"
-                          :aria-expanded="isItemExpanded(item.ppmpItemId)"
-                          class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
-                          @click="toggleItem(item.ppmpItemId)"
-                        >
-                          <ChevronDown
-                            :size="15"
-                            :class="[
-                              'transition-transform',
-                              isItemExpanded(item.ppmpItemId) ? 'rotate-180' : '',
-                            ]"
-                          />
-                          {{ isItemExpanded(item.ppmpItemId) ? 'Hide' : `View (${item.sectionAllocations.length})` }}
-                        </button>
+                      <td class="whitespace-nowrap px-4 py-3.5 text-center">
+                        <div class="inline-flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            class="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50/70 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                            @click="openItemDetailModal(item, group.categoryName)"
+                          >
+                            <Eye :size="14" />
+                            Details
+                          </button>
+
+                          <button
+                            type="button"
+                            :aria-expanded="isItemExpanded(item.ppmpItemId)"
+                            title="Toggle sub-unit allocations"
+                            class="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700"
+                            @click="toggleItem(item.ppmpItemId)"
+                          >
+                            <ChevronDown
+                              :size="14"
+                              :class="[
+                                'transition-transform',
+                                isItemExpanded(item.ppmpItemId) ? 'rotate-180' : '',
+                              ]"
+                            />
+                            {{ item.sectionAllocations.length }}
+                          </button>
+                        </div>
                       </td>
                     </tr>
 
@@ -1036,7 +1092,7 @@ function formatHistoricalText(value: string | null): string {
                               <h4 class="text-sm font-semibold text-slate-900">
                                 Sub-Unit Quantity Allocation
                               </h4>
-                              <p class="mt-0.5 text-xs text-slate-500">
+                              <p class="mt-0.5 line-clamp-1 text-xs text-slate-500">
                                 {{ item.itemDescription }}
                               </p>
                             </div>
@@ -1170,7 +1226,7 @@ function formatHistoricalText(value: string | null): string {
                 Procurement Change History
               </h2>
               <p class="mt-0.5 text-xs text-slate-500">
-                Recorded changes made during Procurement review.
+                Recorded changes made during Procurement review. Click <strong>Details</strong> on an item to inspect full descriptions.
               </p>
             </div>
           </div>
@@ -1302,101 +1358,181 @@ function formatHistoricalText(value: string | null): string {
                   class="rounded-xl border border-slate-200 p-4"
                 >
                   <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <p class="text-sm font-semibold text-slate-900">
-                      {{
-                        !item.previousDescription
-                          ? 'Added Item'
-                          : !item.updatedDescription
-                            ? 'Removed Item'
-                            : 'Updated Item'
-                      }}
-                    </p>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <p class="text-sm font-semibold text-slate-900">
+                        {{
+                          !item.previousDescription
+                            ? 'Added Item'
+                            : !item.updatedDescription
+                              ? 'Removed Item'
+                              : 'Updated Item'
+                        }}
+                      </p>
 
-                    <span
-                      v-if="!item.previousDescription"
-                      class="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-700"
-                    >
-                      Added
-                    </span>
+                      <span
+                        v-if="!item.previousDescription"
+                        class="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-700"
+                      >
+                        Added
+                      </span>
 
-                    <span
-                      v-else-if="!item.updatedDescription"
-                      class="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700"
-                    >
-                      Removed
-                    </span>
+                      <span
+                        v-else-if="!item.updatedDescription"
+                        class="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-700"
+                      >
+                        Removed
+                      </span>
 
-                    <span
-                      v-else
-                      class="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700"
+                      <span
+                        v-else
+                        class="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700"
+                      >
+                        Modified
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50/70 px-2.5 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                      @click="openHistoryItemDetailModal(history, item)"
                     >
-                      Modified
-                    </span>
+                      <Eye :size="13" />
+                      Details
+                    </button>
                   </div>
 
                   <div class="grid gap-4 sm:grid-cols-2">
-                    <!-- PREVIOUS DETAILS -->
-                    <div class="rounded-lg bg-slate-50 p-3.5">
-                      <p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                        Previous Details
-                      </p>
+                   <!-- PREVIOUS DETAILS -->
+<div class="min-w-0 rounded-lg bg-slate-50 p-3.5">
+  <p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+    Previous Details
+  </p>
 
-                      <template v-if="item.previousDescription">
-                        <p class="text-sm font-semibold text-slate-900">
-                          {{ item.previousDescription }}
-                        </p>
+  <template v-if="item.previousDescription">
+    <p
+      class="line-clamp-1 text-sm font-semibold text-slate-900"
+      :title="item.previousDescription"
+    >
+      {{ item.previousDescription }}
+    </p>
 
-                        <p class="mt-1 font-mono text-xs text-slate-500">
-                          Code: {{ item.previousItemCode || '—' }}
-                        </p>
+    <p class="mt-1 font-mono text-xs text-slate-500">
+      Code: {{ item.previousItemCode || '—' }}
+    </p>
 
-                        <div class="mt-3 space-y-2 border-t border-slate-200 pt-3 text-xs text-slate-600">
-                          <div>
-                            <p class="font-semibold text-slate-500">
-                              General Description and Objective
-                            </p>
-                            <p class="mt-1 whitespace-pre-wrap">
-                              {{ formatHistoricalText(item.previousGeneralDescriptionAndObjective) }}
-                            </p>
-                          </div>
+    <div class="mt-3 space-y-2 border-t border-slate-200 pt-3 text-xs text-slate-600">
+      <div>
+        <p class="font-semibold text-slate-500">
+          General Description and Objective
+        </p>
+        <p
+          class="mt-1 line-clamp-1"
+          :title="formatHistoricalText(item.previousGeneralDescriptionAndObjective)"
+        >
+          {{ formatHistoricalText(item.previousGeneralDescriptionAndObjective) }}
+        </p>
+      </div>
 
-                          <p>
-                            <span class="font-semibold text-slate-500">Project Type:</span>
-                            {{ formatHistoricalText(item.previousProjectType) }}
-                          </p>
+      <p>
+        <span class="font-semibold text-slate-500">Project Type:</span>
+        {{ formatHistoricalText(item.previousProjectType) }}
+      </p>
 
-                          <p>
-                            <span class="font-semibold text-slate-500">
-                              Pre-Procurement Conference:
-                            </span>
-                            {{ formatHistoricalBoolean(item.previousPreProcurementConference) }}
-                          </p>
-                        </div>
+      <p>
+        <span class="font-semibold text-slate-500">
+          Pre-Procurement Conference:
+        </span>
+        {{ formatHistoricalBoolean(item.previousPreProcurementConference) }}
+      </p>
+    </div>
 
-                        <div class="mt-3 space-y-1 text-xs text-slate-600 tabular-nums">
-                          <p>Quantity: {{ item.previousQuantity }}</p>
-                          <p>Unit: {{ item.previousUnit || '—' }}</p>
-                          <p>Unit Price: {{ formatPHP(item.previousUnitPrice ?? 0) }}</p>
-                          <p>Estimated Budget: {{ formatPHP(item.previousEstimatedBudget ?? 0) }}</p>
-                        </div>
-                      </template>
+    <div class="mt-3 space-y-1 text-xs text-slate-600 tabular-nums">
+      <p>Quantity: {{ item.previousQuantity }}</p>
+      <p>Unit: {{ item.previousUnit || '—' }}</p>
+      <p>Unit Price: {{ formatPHP(item.previousUnitPrice ?? 0) }}</p>
+      <p>Estimated Budget: {{ formatPHP(item.previousEstimatedBudget ?? 0) }}</p>
+    </div>
+  </template>
 
-                      <p
-                        v-else
-                        class="text-sm italic text-slate-400"
-                      >
-                        Item did not previously exist.
-                      </p>
-                    </div>
+  <p
+    v-else
+    class="text-sm italic text-slate-400"
+  >
+    Item did not previously exist.
+  </p>
+</div>
+
+<!-- UPDATED DETAILS -->
+<div class="min-w-0 rounded-lg bg-brand-50/40 p-3.5">
+  <p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-700">
+    Updated Details
+  </p>
+
+  <template v-if="item.updatedDescription">
+    <p
+      class="line-clamp-1 text-sm font-semibold text-slate-900"
+      :title="item.updatedDescription"
+    >
+      {{ item.updatedDescription }}
+    </p>
+
+    <p class="mt-1 font-mono text-xs text-slate-500">
+      Code: {{ item.updatedItemCode || '—' }}
+    </p>
+
+    <div class="mt-3 space-y-2 border-t border-brand-100 pt-3 text-xs text-slate-600">
+      <div>
+        <p class="font-semibold text-slate-500">
+          General Description and Objective
+        </p>
+        <p
+          class="mt-1 line-clamp-1"
+          :title="formatHistoricalText(item.updatedGeneralDescriptionAndObjective)"
+        >
+          {{ formatHistoricalText(item.updatedGeneralDescriptionAndObjective) }}
+        </p>
+      </div>
+
+      <p>
+        <span class="font-semibold text-slate-500">Project Type:</span>
+        {{ formatHistoricalText(item.updatedProjectType) }}
+      </p>
+
+      <p>
+        <span class="font-semibold text-slate-500">
+          Pre-Procurement Conference:
+        </span>
+        {{ formatHistoricalBoolean(item.updatedPreProcurementConference) }}
+      </p>
+    </div>
+
+    <div class="mt-3 space-y-1 text-xs text-slate-600 tabular-nums">
+      <p>Quantity: {{ item.updatedQuantity }}</p>
+      <p>Unit: {{ item.updatedUnit || '—' }}</p>
+      <p>Unit Price: {{ formatPHP(item.updatedUnitPrice ?? 0) }}</p>
+      <p>Estimated Budget: {{ formatPHP(item.updatedEstimatedBudget ?? 0) }}</p>
+    </div>
+  </template>
+
+  <p
+    v-else
+    class="text-sm italic text-slate-400"
+  >
+    Item was removed.
+  </p>
+</div>
 
                     <!-- UPDATED DETAILS -->
-                    <div class="rounded-lg bg-brand-50/40 p-3.5">
+                    <div class="min-w-0 rounded-lg bg-brand-50/40 p-3.5">
                       <p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-700">
                         Updated Details
                       </p>
 
                       <template v-if="item.updatedDescription">
-                        <p class="text-sm font-semibold text-slate-900">
+                        <p
+                          class="line-clamp-2 text-sm font-semibold text-slate-900"
+                          :title="item.updatedDescription"
+                        >
                           {{ item.updatedDescription }}
                         </p>
 
@@ -1409,7 +1545,10 @@ function formatHistoricalText(value: string | null): string {
                             <p class="font-semibold text-slate-500">
                               General Description and Objective
                             </p>
-                            <p class="mt-1 whitespace-pre-wrap">
+                            <p
+                              class="mt-1 line-clamp-3 whitespace-pre-wrap"
+                              :title="formatHistoricalText(item.updatedGeneralDescriptionAndObjective)"
+                            >
                               {{ formatHistoricalText(item.updatedGeneralDescriptionAndObjective) }}
                             </p>
                           </div>
@@ -1578,6 +1717,10 @@ function formatHistoricalText(value: string | null): string {
           <div class="ppmp-meta-row">
             <span class="ppmp-meta-label">Fiscal Year :</span>
             <span class="ppmp-meta-value">{{ ppmp.planningYear || '' }}</span>
+          </div>
+          <div class="ppmp-meta-row">
+            <span class="ppmp-meta-label">PPMP Submission Type:</span>
+            <span class="ppmp-meta-value">{{ ppmp.ppmpType }}</span>
           </div>
           <div class="ppmp-meta-row">
             <span class="ppmp-meta-label">End-User or Implementing Unit:</span>
@@ -1779,6 +1922,442 @@ function formatHistoricalText(value: string | null): string {
       </section>
     </template>
   </div>
+
+  <!-- ================================================================ -->
+  <!-- ITEM FULL DETAILS MODAL                                          -->
+  <!-- ================================================================ -->
+  <Teleport to="body">
+    <div
+      v-if="selectedItemDetail"
+      class="print:hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-2xs"
+      @click.self="closeItemDetailModal"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Item Full Details"
+        class="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+      >
+        <!-- MODAL HEADER -->
+        <div class="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50/80 px-6 py-4">
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="rounded-lg bg-brand-50 px-2.5 py-0.5 font-mono text-xs font-semibold text-brand-700 ring-1 ring-inset ring-brand-600/20">
+                {{ selectedItemDetail.item.itemCode || 'No Code' }}
+              </span>
+              <span class="text-xs font-medium text-slate-600">
+                {{ selectedItemDetail.categoryName }}
+              </span>
+            </div>
+
+            <h3 class="mt-1.5 text-base font-bold text-slate-900">
+              Item Full Details
+            </h3>
+          </div>
+
+          <button
+            type="button"
+            title="Close details"
+            class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-700"
+            @click="closeItemDetailModal"
+          >
+            <X :size="20" />
+          </button>
+        </div>
+
+        <!-- MODAL BODY -->
+        <div class="flex-1 space-y-5 overflow-y-auto p-6">
+          <!-- FULL DESCRIPTION & SPECIFICATIONS -->
+          <div class="rounded-xl border border-slate-200/80 bg-slate-50/60 p-4">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              General Description and Objective
+            </p>
+            <p class="mt-1.5 whitespace-pre-wrap text-sm font-medium leading-relaxed text-slate-900">
+              {{
+                getPrintField(selectedItemDetail.item, 'generalDescriptionAndObjective') ||
+                selectedItemDetail.item.itemDescription
+              }}
+            </p>
+
+            <div
+              v-if="selectedItemDetail.item.specifications"
+              class="mt-3 border-t border-slate-200/80 pt-3"
+            >
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Technical Specifications
+              </p>
+              <p class="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-slate-700">
+                {{ selectedItemDetail.item.specifications }}
+              </p>
+            </div>
+          </div>
+
+          <!-- QUANTITY & COST METRICS -->
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div class="rounded-xl border border-slate-200/80 p-3">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Project Type
+              </p>
+              <p class="mt-1 text-sm font-semibold text-slate-900">
+                {{ getPrintField(selectedItemDetail.item, 'projectType') || selectedItemDetail.item.itemType || 'Goods' }}
+              </p>
+            </div>
+
+            <div class="rounded-xl border border-slate-200/80 p-3">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Total Quantity
+              </p>
+              <p class="mt-1 text-sm font-semibold text-slate-900 tabular-nums">
+                {{ selectedItemDetail.item.quantity }} {{ selectedItemDetail.item.unit || '' }}
+              </p>
+            </div>
+
+            <div class="rounded-xl border border-slate-200/80 p-3">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                ABC / Unit
+              </p>
+              <p class="mt-1 text-sm font-semibold text-slate-900 tabular-nums">
+                {{ formatPHP(selectedItemDetail.item.unitPrice) }}
+              </p>
+            </div>
+
+            <div class="rounded-xl border border-brand-200/80 bg-brand-50/40 p-3">
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-brand-700">
+                Estimated Budget
+              </p>
+              <p class="mt-1 text-sm font-extrabold text-brand-700 tabular-nums">
+                {{ formatPHP(selectedItemDetail.item.estimatedBudget) }}
+              </p>
+            </div>
+          </div>
+
+          <!-- PROCUREMENT PLANNING & FUNDING DETAILS -->
+          <div>
+            <h4 class="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+              Procurement Planning & Funding Details
+            </h4>
+
+            <div class="grid grid-cols-1 gap-3 rounded-xl border border-slate-200/80 p-4 text-xs sm:grid-cols-2">
+              <div>
+                <span class="font-semibold text-slate-500">Recommended Mode:</span>
+                <p class="mt-0.5 font-medium text-slate-900">
+                  {{ getPrintField(selectedItemDetail.item, 'recommendedModeOfProcurement') || '—' }}
+                </p>
+              </div>
+
+              <div>
+                <span class="font-semibold text-slate-500">Pre-Procurement Conference:</span>
+                <p class="mt-0.5 font-medium text-slate-900">
+                  {{ getPrintPreProc(selectedItemDetail.item) }}
+                </p>
+              </div>
+
+              <div>
+                <span class="font-semibold text-slate-500">Procurement Activity Timeline:</span>
+                <p class="mt-0.5 font-medium tabular-nums text-slate-900">
+                  {{ formatMonth(getPrintField(selectedItemDetail.item, 'startOfProcurementActivity')) || '—' }}
+                  to
+                  {{ formatMonth(getPrintField(selectedItemDetail.item, 'endOfProcurementActivity')) || '—' }}
+                </p>
+              </div>
+
+              <div>
+                <span class="font-semibold text-slate-500">Expected Delivery / Implementation:</span>
+                <p class="mt-0.5 font-medium text-slate-900">
+                  {{ getPrintField(selectedItemDetail.item, 'expectedDeliveryImplementationPeriod') || '—' }}
+                </p>
+              </div>
+
+              <div>
+                <span class="font-semibold text-slate-500">Source of Funds:</span>
+                <p class="mt-0.5 font-medium text-slate-900">
+                  {{ getPrintField(selectedItemDetail.item, 'sourceOfFunds') || '—' }}
+                </p>
+              </div>
+
+              <div>
+                <span class="font-semibold text-slate-500">Attached Supporting Documents:</span>
+                <p class="mt-0.5 font-medium text-slate-900">
+                  {{ getPrintField(selectedItemDetail.item, 'attachedSupportingDocuments') || 'None' }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUB-UNIT ALLOCATIONS -->
+          <div>
+            <h4 class="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+              Sub-Unit Quantity Allocations ({{ selectedItemDetail.item.sectionAllocations.length }})
+            </h4>
+
+            <div
+              v-if="selectedItemDetail.item.sectionAllocations.length > 0"
+              class="overflow-hidden rounded-xl border border-slate-200"
+            >
+              <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                  <tr>
+                    <th class="px-3.5 py-2.5">Code</th>
+                    <th class="px-3.5 py-2.5">Sub-Unit</th>
+                    <th class="px-3.5 py-2.5 text-right">Quantity</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  <tr
+                    v-for="allocation in selectedItemDetail.item.sectionAllocations"
+                    :key="allocation.allocationId"
+                  >
+                    <td class="px-3.5 py-2 font-mono text-slate-600">
+                      {{ allocation.sectionCode }}
+                    </td>
+                    <td class="px-3.5 py-2 font-medium text-slate-800">
+                      {{ allocation.sectionName }}
+                    </td>
+                    <td class="px-3.5 py-2 text-right font-semibold tabular-nums text-slate-900">
+                      {{ allocation.quantity }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p
+              v-else
+              class="rounded-xl bg-slate-50 p-3.5 text-xs text-slate-500"
+            >
+              No sub-unit allocations recorded for this item.
+            </p>
+          </div>
+        </div>
+
+        <!-- MODAL FOOTER -->
+        <div class="flex justify-end border-t border-slate-200 bg-slate-50 px-6 py-3.5">
+          <button
+            type="button"
+            class="drmc-btn-secondary px-4 py-2 text-sm"
+            @click="closeItemDetailModal"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
+
+  <!-- ================================================================ -->
+  <!-- CHANGE HISTORY ITEM COMPARISON MODAL                             -->
+  <!-- ================================================================ -->
+  <Teleport to="body">
+    <div
+      v-if="selectedHistoryItemDetail"
+      class="print:hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-2xs"
+      @click.self="closeHistoryItemDetailModal"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Procurement Change Item Comparison"
+        class="flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+      >
+        <!-- MODAL HEADER -->
+        <div class="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50/80 px-6 py-4">
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700 ring-1 ring-inset ring-purple-600/20">
+                Change #{{ selectedHistoryItemDetail.history.changeHistoryId }}
+              </span>
+              <span class="text-xs text-slate-500">
+                {{ selectedHistoryItemDetail.history.changedByName }} · {{ formatDate(selectedHistoryItemDetail.history.changedAt) }}
+              </span>
+            </div>
+
+            <h3 class="mt-1.5 text-base font-bold text-slate-900">
+              {{
+                !selectedHistoryItemDetail.item.previousDescription
+                  ? 'Added Item — Full Details'
+                  : !selectedHistoryItemDetail.item.updatedDescription
+                    ? 'Removed Item — Full Details'
+                    : 'Updated Item — Full Comparison'
+              }}
+            </h3>
+          </div>
+
+          <button
+            type="button"
+            title="Close details"
+            class="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-700"
+            @click="closeHistoryItemDetailModal"
+          >
+            <X :size="20" />
+          </button>
+        </div>
+
+        <!-- MODAL BODY -->
+        <div class="flex-1 space-y-5 overflow-y-auto p-6">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <!-- PREVIOUS DETAILS -->
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Previous Details
+              </p>
+
+              <template v-if="selectedHistoryItemDetail.item.previousDescription">
+                <p class="whitespace-pre-wrap text-sm font-semibold leading-relaxed text-slate-900">
+                  {{ selectedHistoryItemDetail.item.previousDescription }}
+                </p>
+
+                <p class="mt-1.5 font-mono text-xs text-slate-500">
+                  Code: {{ selectedHistoryItemDetail.item.previousItemCode || '—' }}
+                </p>
+
+                <div class="mt-3 space-y-2.5 border-t border-slate-200 pt-3 text-xs text-slate-600">
+                  <div>
+                    <p class="font-semibold text-slate-500">
+                      General Description and Objective
+                    </p>
+                    <p class="mt-1 whitespace-pre-wrap leading-relaxed text-slate-800">
+                      {{ formatHistoricalText(selectedHistoryItemDetail.item.previousGeneralDescriptionAndObjective) }}
+                    </p>
+                  </div>
+
+                  <p>
+                    <span class="font-semibold text-slate-500">Project Type:</span>
+                    {{ formatHistoricalText(selectedHistoryItemDetail.item.previousProjectType) }}
+                  </p>
+
+                  <p>
+                    <span class="font-semibold text-slate-500">Pre-Procurement Conference:</span>
+                    {{ formatHistoricalBoolean(selectedHistoryItemDetail.item.previousPreProcurementConference) }}
+                  </p>
+                </div>
+
+                <div class="mt-3 space-y-1 border-t border-slate-200 pt-3 text-xs text-slate-700 tabular-nums">
+                  <p><strong>Quantity:</strong> {{ selectedHistoryItemDetail.item.previousQuantity }}</p>
+                  <p><strong>Unit:</strong> {{ selectedHistoryItemDetail.item.previousUnit || '—' }}</p>
+                  <p><strong>Unit Price:</strong> {{ formatPHP(selectedHistoryItemDetail.item.previousUnitPrice ?? 0) }}</p>
+                  <p><strong>Estimated Budget:</strong> {{ formatPHP(selectedHistoryItemDetail.item.previousEstimatedBudget ?? 0) }}</p>
+                </div>
+              </template>
+
+              <p
+                v-else
+                class="text-sm italic text-slate-400"
+              >
+                Item did not previously exist.
+              </p>
+            </div>
+
+            <!-- UPDATED DETAILS -->
+            <div class="rounded-xl border border-brand-200/80 bg-brand-50/40 p-4">
+              <p class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-brand-700">
+                Updated Details
+              </p>
+
+              <template v-if="selectedHistoryItemDetail.item.updatedDescription">
+                <p class="whitespace-pre-wrap text-sm font-semibold leading-relaxed text-slate-900">
+                  {{ selectedHistoryItemDetail.item.updatedDescription }}
+                </p>
+
+                <p class="mt-1.5 font-mono text-xs text-slate-500">
+                  Code: {{ selectedHistoryItemDetail.item.updatedItemCode || '—' }}
+                </p>
+
+                <div class="mt-3 space-y-2.5 border-t border-brand-100 pt-3 text-xs text-slate-600">
+                  <div>
+                    <p class="font-semibold text-slate-500">
+                      General Description and Objective
+                    </p>
+                    <p class="mt-1 whitespace-pre-wrap leading-relaxed text-slate-800">
+                      {{ formatHistoricalText(selectedHistoryItemDetail.item.updatedGeneralDescriptionAndObjective) }}
+                    </p>
+                  </div>
+
+                  <p>
+                    <span class="font-semibold text-slate-500">Project Type:</span>
+                    {{ formatHistoricalText(selectedHistoryItemDetail.item.updatedProjectType) }}
+                  </p>
+
+                  <p>
+                    <span class="font-semibold text-slate-500">Pre-Procurement Conference:</span>
+                    {{ formatHistoricalBoolean(selectedHistoryItemDetail.item.updatedPreProcurementConference) }}
+                  </p>
+                </div>
+
+                <div class="mt-3 space-y-1 border-t border-brand-100 pt-3 text-xs text-slate-700 tabular-nums">
+                  <p><strong>Quantity:</strong> {{ selectedHistoryItemDetail.item.updatedQuantity }}</p>
+                  <p><strong>Unit:</strong> {{ selectedHistoryItemDetail.item.updatedUnit || '—' }}</p>
+                  <p><strong>Unit Price:</strong> {{ formatPHP(selectedHistoryItemDetail.item.updatedUnitPrice ?? 0) }}</p>
+                  <p><strong>Estimated Budget:</strong> {{ formatPHP(selectedHistoryItemDetail.item.updatedEstimatedBudget ?? 0) }}</p>
+                </div>
+              </template>
+
+              <p
+                v-else
+                class="text-sm italic text-slate-400"
+              >
+                Item was removed.
+              </p>
+            </div>
+          </div>
+
+          <!-- SECTION ALLOCATION CHANGES -->
+          <div
+            v-if="selectedHistoryItemDetail.item.sectionAllocations.length > 0"
+            class="border-t border-slate-200 pt-4"
+          >
+            <h4 class="mb-2.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+              Sub-Unit Allocation Changes
+            </h4>
+
+            <div class="space-y-2">
+              <div
+                v-for="allocation in selectedHistoryItemDetail.item.sectionAllocations"
+                :key="allocation.changeHistorySectionAllocationId"
+                class="grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs sm:grid-cols-2"
+              >
+                <div>
+                  <p class="font-semibold text-slate-500">Previous Allocation</p>
+                  <p class="mt-1 font-medium text-slate-800">
+                    {{ allocation.previousSectionName || 'No previous allocation' }}
+                  </p>
+                  <p
+                    v-if="allocation.previousSectionName"
+                    class="mt-0.5 text-slate-500 tabular-nums"
+                  >
+                    {{ allocation.previousSectionCode }} · Quantity: {{ allocation.previousQuantity }}
+                  </p>
+                </div>
+
+                <div>
+                  <p class="font-semibold text-brand-700">Updated Allocation</p>
+                  <p class="mt-1 font-medium text-slate-800">
+                    {{ allocation.updatedSectionName || 'Allocation removed' }}
+                  </p>
+                  <p
+                    v-if="allocation.updatedSectionName"
+                    class="mt-0.5 text-slate-500 tabular-nums"
+                  >
+                    {{ allocation.updatedSectionCode }} · Quantity: {{ allocation.updatedQuantity }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL FOOTER -->
+        <div class="flex justify-end border-t border-slate-200 bg-slate-50 px-6 py-3.5">
+          <button
+            type="button"
+            class="drmc-btn-secondary px-4 py-2 text-sm"
+            @click="closeHistoryItemDetailModal"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 
   <!-- WORKFLOW CONFIRMATION MODAL -->
   <Teleport to="body">

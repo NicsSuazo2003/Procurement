@@ -116,6 +116,9 @@ public static class FeatureHandlerRegistrations
         services.AddScoped<IRequestHandler<GetAPPByIdQuery, APPDetailDto?>, GetAPPByIdHandler>();
         services.AddScoped<IRequestHandler<GenerateAPPCommand, GenerateAPPResultDto>, GenerateAPPHandler>();
         services.AddScoped<IRequestHandler<AddReviewedPPMPsCommand, GenerateAPPResultDto>, AddReviewedPPMPsHandler>();
+        services.AddScoped<IRequestHandler<PrepareAPPCommand, APPDetailDto>, PrepareAPPHandler>();
+        services.AddScoped<IRequestHandler<RecommendAPPCommand, APPDetailDto>, RecommendAPPHandler>();
+        services.AddScoped<IRequestHandler<ApproveAPPCommand, APPDetailDto>, ApproveAPPHandler>();
         services.AddScoped<IRequestHandler<AuthenticateUserQuery, UserDto?>, AuthenticateUserHandler>();
 
         services.AddScoped<IRequestHandler<GetPagedPPMPsQuery, PagedResult<PPMPDto>>, GetPagedPPMPsHandler>();

@@ -45,11 +45,15 @@ public class APPService : IAPPService
     public async Task<APPDetailDto?> GetByIdAsync(int id)
     {
         var app = await _context.APPs
+            .AsNoTracking()
             .Include(x => x.Categories)
                 .ThenInclude(x => x.Items)
                     .ThenInclude(x => x.Sources)
                         .ThenInclude(x => x.PPMPItem)
                             .ThenInclude(x => x.PPMP)
+            .Include(x => x.PreparedByUser)
+            .Include(x => x.RecommendedByUser)
+            .Include(x => x.ApprovedByUser)
             .FirstOrDefaultAsync(x => x.APPId == id);
 
         if (app == null)
@@ -127,7 +131,7 @@ public class APPService : IAPPService
             APPReference =
                 $"APP-{planningYear.Year}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
 
-            Status = "Draft",
+            Status = APPStatuses.Draft,
             CreatedAt = now,
             Categories = []
         };
@@ -197,7 +201,7 @@ public class APPService : IAPPService
         }
 
         // Do not modify an APP that has moved beyond Draft.
-        if (app.Status != "Draft")
+        if (app.Status != APPStatuses.Draft)
         {
             throw new InvalidOperationException(
                 "Only Draft APP records can receive additional PPMPs.");
@@ -297,6 +301,110 @@ public class APPService : IAPPService
         return BuildAPPResult(app, reviewedPPMPs.Count);
     }
 
+    public Task<APPDetailDto> MarkPreparedAsync(int appId, int preparedBy) =>
+        RecordApprovalAsync(
+            appId,
+            preparedBy,
+            APPApprovalRoles.PreparedBy,
+            APPStatuses.Draft,
+            APPStatuses.Prepared,
+            (query, at) => query.ExecuteUpdateAsync(setters => setters
+                .SetProperty(app => app.PreparedByUserId, preparedBy)
+                .SetProperty(app => app.PreparedAt, at)
+                .SetProperty(app => app.Status, APPStatuses.Prepared)));
+
+    public Task<APPDetailDto> MarkRecommendedAsync(int appId, int recommendedBy) =>
+        RecordApprovalAsync(
+            appId,
+            recommendedBy,
+            APPApprovalRoles.RecommendedBy,
+            APPStatuses.Prepared,
+            APPStatuses.Recommended,
+            (query, at) => query.ExecuteUpdateAsync(setters => setters
+                .SetProperty(app => app.RecommendedByUserId, recommendedBy)
+                .SetProperty(app => app.RecommendedAt, at)
+                .SetProperty(app => app.Status, APPStatuses.Recommended)));
+
+    public Task<APPDetailDto> MarkApprovedAsync(int appId, int approvedBy) =>
+        RecordApprovalAsync(
+            appId,
+            approvedBy,
+            APPApprovalRoles.ApprovedBy,
+            APPStatuses.Recommended,
+            APPStatuses.Approved,
+            (query, at) => query.ExecuteUpdateAsync(setters => setters
+                .SetProperty(app => app.ApprovedByUserId, approvedBy)
+                .SetProperty(app => app.ApprovedAt, at)
+                .SetProperty(app => app.Status, APPStatuses.Approved)));
+
+    private async Task<APPDetailDto> RecordApprovalAsync(
+        int appId,
+        int userId,
+        string requiredRole,
+        string expectedStatus,
+        string nextStatus,
+        Func<IQueryable<APPEntity>, DateTime, Task<int>> updateApproval)
+    {
+        var app = await _context.APPs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.APPId == appId);
+
+        if (app is null)
+        {
+            throw new KeyNotFoundException("The APP record does not exist.");
+        }
+
+        if (app.Status != expectedStatus)
+        {
+            throw new InvalidOperationException(
+                $"The APP must be in {expectedStatus} status before it can be marked {nextStatus}.");
+        }
+
+        var user = await _context.Users
+            .Include(x => x.UserRoles)
+                .ThenInclude(x => x.Role)
+            .FirstOrDefaultAsync(x => x.UserId == userId);
+
+        if (user is null || !user.IsActive)
+        {
+            throw new InvalidOperationException(
+                "The authenticated user does not exist or is inactive.");
+        }
+
+        if (!user.UserRoles.Any(x => x.Role.RoleName == requiredRole))
+        {
+            throw new InvalidOperationException(
+                $"The user must have the {requiredRole} role to perform this APP approval.");
+        }
+
+        if (app.PreparedByUserId == userId ||
+            app.RecommendedByUserId == userId ||
+            app.ApprovedByUserId == userId)
+        {
+            throw new InvalidOperationException(
+                "Each APP approval stage must be completed by a different user.");
+        }
+
+        var updateQuery = _context.APPs
+            .Where(x =>
+                x.APPId == appId &&
+                x.Status == expectedStatus &&
+                x.PreparedByUserId == app.PreparedByUserId &&
+                x.RecommendedByUserId == app.RecommendedByUserId &&
+                x.ApprovedByUserId == app.ApprovedByUserId);
+        var updatedCount = await updateApproval(updateQuery, DateTime.UtcNow);
+
+        if (updatedCount == 0)
+        {
+            throw new InvalidOperationException(
+                "The APP changed while this sign-off was being recorded. Reload it and try again.");
+        }
+
+        return await GetByIdAsync(appId)
+            ?? throw new InvalidOperationException(
+                "The APP approval was saved, but its details could not be retrieved.");
+    }
+
     private static APPItem CreateAPPItemFromPPMPItem(
         Drmc.Procurement.Domain.Entities.Procurement.PPMPItem ppmpItem,
         string endUser)
@@ -367,6 +475,17 @@ public class APPService : IAPPService
                 category => category.TotalEstimatedBudget),
             CreatedAt = app.CreatedAt,
             ApprovedAt = app.ApprovedAt,
+            PreparedByUserId = app.PreparedByUserId,
+            PreparedByName = app.PreparedByUser?.FullName,
+            PreparedByPosition = app.PreparedByUser?.Position,
+            PreparedAt = app.PreparedAt,
+            RecommendedByUserId = app.RecommendedByUserId,
+            RecommendedByName = app.RecommendedByUser?.FullName,
+            RecommendedByPosition = app.RecommendedByUser?.Position,
+            RecommendedAt = app.RecommendedAt,
+            ApprovedByUserId = app.ApprovedByUserId,
+            ApprovedByName = app.ApprovedByUser?.FullName,
+            ApprovedByPosition = app.ApprovedByUser?.Position,
 
             Categories = app.Categories.Select(category =>
                 new APPCategoryDto

@@ -24,6 +24,7 @@ import type { PPMPListApi } from '../models/ppmp-api.types'
 interface PPMPListRecord {
   id: number
   reference: string
+  ppmpType: PPMPListApi['ppmpType']
   department: string
   planningYear: number
   dateSubmitted: string
@@ -116,6 +117,7 @@ function mapApiRecord(record: PPMPListApi): PPMPListRecord {
   return {
     id: record.ppmpId,
     reference: record.ppmpReference,
+    ppmpType: record.ppmpType,
     department: record.departmentName,
     planningYear: record.planningYear,
     dateSubmitted: record.submittedAt
@@ -405,6 +407,7 @@ const filteredRecords = computed(() => {
           <thead class="border-b border-slate-200/80 bg-slate-50/80 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             <tr>
               <th class="whitespace-nowrap px-5 py-3.5">Reference No.</th>
+              <th class="whitespace-nowrap px-5 py-3.5">Type</th>
               <th class="whitespace-nowrap px-5 py-3.5">Unit</th>
               <th class="whitespace-nowrap px-5 py-3.5">Planning Year</th>
               <th class="whitespace-nowrap px-5 py-3.5 text-right">Items</th>
@@ -417,13 +420,13 @@ const filteredRecords = computed(() => {
 
           <tbody class="divide-y divide-slate-100">
             <tr v-if="isLoading">
-              <td colspan="8" class="px-5 py-14 text-center text-sm font-medium text-slate-500">
+              <td colspan="9" class="px-5 py-14 text-center text-sm font-medium text-slate-500">
                 Loading PPMP records...
               </td>
             </tr>
 
             <tr v-else-if="errorMessage">
-              <td colspan="8" role="alert" class="px-5 py-10 text-center">
+              <td colspan="9" role="alert" class="px-5 py-10 text-center">
                 <p class="text-sm font-medium text-red-700">
                   {{ errorMessage }}
                 </p>
@@ -453,6 +456,19 @@ const filteredRecords = computed(() => {
                   >
                     {{ record.reference }}
                   </RouterLink>
+                </td>
+
+                <td class="whitespace-nowrap px-5 py-4">
+                  <span
+                    :class="[
+                      'inline-flex rounded-full px-2.5 py-1 text-xs font-medium',
+                      record.ppmpType === 'Initial'
+                        ? 'bg-brand-50 text-brand-700'
+                        : 'bg-amber-50 text-amber-800',
+                    ]"
+                  >
+                    {{ record.ppmpType }}
+                  </span>
                 </td>
 
                 <td class="whitespace-nowrap px-5 py-4 font-medium text-slate-800">
@@ -493,7 +509,7 @@ const filteredRecords = computed(() => {
               </tr>
 
               <tr v-if="filteredRecords.length === 0">
-                <td colspan="8" class="px-5 py-14 text-center">
+                <td colspan="9" class="px-5 py-14 text-center">
                   <p class="text-sm font-semibold text-slate-700">
                     No matching PPMP records found
                   </p>

@@ -24,6 +24,17 @@ public class APPDetailDto
     public DateTime CreatedAt { get; set; }
     public DateTime? ApprovedAt { get; set; }
     public int RevisionNo { get; set; }
+    public int? PreparedByUserId { get; set; }
+    public string? PreparedByName { get; set; }
+    public string? PreparedByPosition { get; set; }
+    public DateTime? PreparedAt { get; set; }
+    public int? RecommendedByUserId { get; set; }
+    public string? RecommendedByName { get; set; }
+    public string? RecommendedByPosition { get; set; }
+    public DateTime? RecommendedAt { get; set; }
+    public int? ApprovedByUserId { get; set; }
+    public string? ApprovedByName { get; set; }
+    public string? ApprovedByPosition { get; set; }
     public List<APPCategoryDto> Categories { get; set; } = [];
 }
 

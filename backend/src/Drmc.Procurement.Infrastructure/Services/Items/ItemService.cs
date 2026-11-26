@@ -36,57 +36,62 @@ public class ItemService : IItemService
 
     public async Task<ItemDto> CreateAsync(CreateItemRequest request)
     {
-        await using var transaction =
-            await _context.Database.BeginTransactionAsync(
-                IsolationLevel.Serializable);
+        var strategy = _context.Database.CreateExecutionStrategy();
 
-        var category = await _context.ProcurementCategories
-            .FirstOrDefaultAsync(x => x.CategoryId == request.CategoryId);
-
-        if (category is null)
-            throw new KeyNotFoundException("Procurement category not found.");
-
-        var categoryCode = category.CategoryCode.Trim();
-
-        // Read existing codes in this category while holding
-        // the serializable transaction's range locks.
-        var existingCodes = await _context.Items
-            .Where(x => x.CategoryId == request.CategoryId)
-            .Select(x => x.ItemCode)
-            .ToListAsync();
-
-        var prefix = $"{categoryCode}-";
-
-        var highestNumber = existingCodes
-            .Where(code => code.StartsWith(
-                prefix,
-                StringComparison.OrdinalIgnoreCase))
-            .Select(code => code[prefix.Length..])
-            .Where(suffix => int.TryParse(suffix, out _))
-            .Select(int.Parse)
-            .DefaultIfEmpty(0)
-            .Max();
-
-        var nextNumber = highestNumber + 1;
-        var generatedCode = $"{prefix}{nextNumber:D4}";
-
-        var item = new Item
+        return await strategy.ExecuteAsync(async () =>
         {
-            CategoryId = request.CategoryId,
-            ItemCode = generatedCode,
-            ItemName = request.ItemName.Trim(),
-            ItemType = request.ItemType?.Trim(),
-            Unit = request.Unit.Trim(),
-            Specifications = request.Specifications?.Trim(),
-            IsActive = true
-        };
+            await using var transaction =
+                await _context.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable);
 
-        _context.Items.Add(item);
+            var category = await _context.ProcurementCategories
+                .FirstOrDefaultAsync(x => x.CategoryId == request.CategoryId);
 
-        await _context.SaveChangesAsync();
-        await transaction.CommitAsync();
+            if (category is null)
+                throw new KeyNotFoundException("Procurement category not found.");
 
-        return (await GetByIdAsync(item.ItemId))!;
+            var categoryCode = category.CategoryCode.Trim();
+
+            // Read existing codes in this category while holding
+            // the serializable transaction's range locks.
+            var existingCodes = await _context.Items
+                .Where(x => x.CategoryId == request.CategoryId)
+                .Select(x => x.ItemCode)
+                .ToListAsync();
+
+            var prefix = $"{categoryCode}-";
+
+            var highestNumber = existingCodes
+                .Where(code => code.StartsWith(
+                    prefix,
+                    StringComparison.OrdinalIgnoreCase))
+                .Select(code => code[prefix.Length..])
+                .Where(suffix => int.TryParse(suffix, out _))
+                .Select(int.Parse)
+                .DefaultIfEmpty(0)
+                .Max();
+
+            var nextNumber = highestNumber + 1;
+            var generatedCode = $"{prefix}{nextNumber:D4}";
+
+            var item = new Item
+            {
+                CategoryId = request.CategoryId,
+                ItemCode = generatedCode,
+                ItemName = request.ItemName.Trim(),
+                ItemType = request.ItemType?.Trim(),
+                Unit = request.Unit.Trim(),
+                Specifications = request.Specifications?.Trim(),
+                IsActive = true
+            };
+
+            _context.Items.Add(item);
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return (await GetByIdAsync(item.ItemId))!;
+        });
     }
 
     public async Task<ItemDto?> UpdateAsync(

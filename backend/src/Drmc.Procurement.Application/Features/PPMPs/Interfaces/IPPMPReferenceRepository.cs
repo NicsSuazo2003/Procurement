@@ -11,6 +11,11 @@ public interface IPPMPReferenceRepository
 
     Task<PlanningYear?> GetPlanningYearAsync(int planningYearId, CancellationToken cancellationToken = default);
 
+    Task<bool> HasInitialPPMPAsync(
+        int departmentId,
+        int planningYearId,
+        CancellationToken cancellationToken = default);
+
     Task<User?> GetActiveUserAsync(int userId, CancellationToken cancellationToken = default);
 
     Task<bool> IsActiveProcurementStaffAsync(

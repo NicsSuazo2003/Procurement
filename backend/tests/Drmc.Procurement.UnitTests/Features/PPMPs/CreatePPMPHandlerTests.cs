@@ -49,6 +49,7 @@ public sealed class CreatePPMPHandlerTests
         Assert.Matches(@"^PPMP-2028-[0-9A-F]{8}$", saved.PPMPReference);
         Assert.Equal(10, saved.DepartmentId);
         Assert.Equal(2028, saved.PlanningYearId);
+        Assert.Equal(PPMPTypes.Initial, saved.PPMPType);
         Assert.Equal(99, saved.CreatedBy);
         Assert.Equal("Draft", saved.Status);
         Assert.Equal(25, item.EstimatedBudget);
@@ -72,6 +73,58 @@ public sealed class CreatePPMPHandlerTests
         Assert.Equal(cancellationSource.Token, reader.CancellationToken);
         Assert.Equal(42, reader.RequestedId);
         Assert.Equal(10, reader.RequestedDepartmentId);
+    }
+
+    [Fact]
+    public async Task Handle_InitialPPMPAlreadyExists_RejectsWithoutSaving()
+    {
+        var references = new FakeReferenceRepository { HasInitialPPMP = true };
+        var writer = new FakePPMPRepository();
+        var handler = new CreatePPMPHandler(writer, references, new FakeReadRepository());
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Handle(new CreatePPMPCommand(CreateRequest(), CreatedBy: 99, DepartmentId: 10)));
+
+        Assert.Contains("initial PPMP already exists", exception.Message);
+        Assert.Null(writer.SavedPPMP);
+    }
+
+    [Fact]
+    public async Task Handle_SupplementalPPMPWithInitial_UsesSupplementalType()
+    {
+        var request = CreateRequest();
+        request.PPMPType = PPMPTypes.Supplemental;
+        var writer = new FakePPMPRepository();
+        var handler = new CreatePPMPHandler(
+            writer,
+            new FakeReferenceRepository { HasInitialPPMP = true },
+            new FakeReadRepository
+            {
+                Details = new PPMPDetailDto { PPMPId = 42, Status = "Draft" }
+            });
+
+        await handler.Handle(
+            new CreatePPMPCommand(request, CreatedBy: 99, DepartmentId: 10));
+
+        Assert.Equal(PPMPTypes.Supplemental, writer.SavedPPMP?.PPMPType);
+    }
+
+    [Fact]
+    public async Task Handle_SupplementalWithoutInitial_RejectsWithoutSaving()
+    {
+        var request = CreateRequest();
+        request.PPMPType = PPMPTypes.Supplemental;
+        var writer = new FakePPMPRepository();
+        var handler = new CreatePPMPHandler(
+            writer,
+            new FakeReferenceRepository(),
+            new FakeReadRepository());
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            handler.Handle(new CreatePPMPCommand(request, CreatedBy: 99, DepartmentId: 10)));
+
+        Assert.Contains("Initial PPMP must be created", exception.Message);
+        Assert.Null(writer.SavedPPMP);
     }
 
     [Fact]
@@ -240,6 +293,7 @@ public sealed class CreatePPMPHandlerTests
         public Department? Department { get; init; } = new() { DepartmentId = 10, IsActive = true };
         public PlanningYear? PlanningYear { get; init; } = new() { PlanningYearId = 2028, Year = 2028, Status = "Open" };
         public User? Creator { get; init; } = new() { UserId = 99, DepartmentId = 10, IsActive = true };
+        public bool HasInitialPPMP { get; init; }
         public IReadOnlyCollection<int> ActiveCategoryIds { get; init; } = [3];
         public IReadOnlyDictionary<int, Item> CatalogueItems { get; init; } =
             new Dictionary<int, Item>
@@ -273,6 +327,12 @@ public sealed class CreatePPMPHandlerTests
             LookupCount++;
             return Task.FromResult(PlanningYear);
         }
+
+        public Task<bool> HasInitialPPMPAsync(
+            int departmentId,
+            int planningYearId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(HasInitialPPMP);
 
         public Task<User?> GetActiveUserAsync(
             int userId,
@@ -325,5 +385,12 @@ public sealed class CreatePPMPHandlerTests
                 CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyDictionary<int, Drmc.Procurement.Domain.Entities.Organization.DepartmentSection>>(
                 new Dictionary<int, Drmc.Procurement.Domain.Entities.Organization.DepartmentSection>());
+
+        public Task<IReadOnlyCollection<int>> GetActiveTeamIdsForUserAsync(
+            int userId,
+            int departmentId,
+            IReadOnlyCollection<int> teamIds,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyCollection<int>>([]);
     }
 }

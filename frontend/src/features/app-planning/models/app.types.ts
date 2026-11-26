@@ -74,6 +74,17 @@ export interface APPDetail {
   totalEstimatedBudget: number
   createdAt: string
   approvedAt: string | null
+  preparedByUserId: number | null
+  preparedByName: string | null
+  preparedByPosition: string | null
+  preparedAt: string | null
+  recommendedByUserId: number | null
+  recommendedByName: string | null
+  recommendedByPosition: string | null
+  recommendedAt: string | null
+  approvedByUserId: number | null
+  approvedByName: string | null
+  approvedByPosition: string | null
   categories: APPCategory[]
 }
 

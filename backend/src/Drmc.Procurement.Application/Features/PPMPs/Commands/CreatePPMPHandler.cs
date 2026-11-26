@@ -49,6 +49,33 @@ public sealed class CreatePPMPHandler(
                 "The selected planning year does not exist.");
         }
 
+        var ppmpType = request.PPMPType?.Trim();
+        if (!string.Equals(ppmpType, PPMPTypes.Initial, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(ppmpType, PPMPTypes.Supplemental, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                "The PPMP type must be Initial or Supplemental.");
+        }
+
+        var hasInitialPPMP = await referenceRepository.HasInitialPPMPAsync(
+            request.DepartmentId,
+            request.PlanningYearId,
+            cancellationToken);
+
+        if (string.Equals(ppmpType, PPMPTypes.Initial, StringComparison.OrdinalIgnoreCase) &&
+            hasInitialPPMP)
+        {
+            throw new InvalidOperationException(
+                "An initial PPMP already exists for this unit and planning year. Submit a Supplemental PPMP for additional needs.");
+        }
+
+        if (string.Equals(ppmpType, PPMPTypes.Supplemental, StringComparison.OrdinalIgnoreCase) &&
+            !hasInitialPPMP)
+        {
+            throw new InvalidOperationException(
+                "An Initial PPMP must be created before submitting a Supplemental PPMP.");
+        }
+
         if (!string.Equals(planningYear.Status, "Open", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException(
@@ -148,6 +175,9 @@ public sealed class CreatePPMPHandler(
         var ppmp = new PPMP
         {
             PPMPReference = $"PPMP-{planningYear.Year}-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}",
+            PPMPType = string.Equals(ppmpType, PPMPTypes.Initial, StringComparison.OrdinalIgnoreCase)
+                ? PPMPTypes.Initial
+                : PPMPTypes.Supplemental,
             DepartmentId = request.DepartmentId,
             PlanningYearId = request.PlanningYearId,
             CreatedBy = command.CreatedBy,
@@ -237,24 +267,29 @@ public sealed class CreatePPMPHandler(
                 "Recommended mode of procurement is required.");
         }
 
-        if (!IsValidProcurementMonth(itemRequest.StartOfProcurementActivity))
+        var startOfProcurementActivity =
+            itemRequest.StartOfProcurementActivity?.Trim() ?? string.Empty;
+        var endOfProcurementActivity =
+            itemRequest.EndOfProcurementActivity?.Trim() ?? string.Empty;
+
+        if (!IsValidProcurementMonth(startOfProcurementActivity))
         {
             throw new InvalidOperationException(
                 "A valid start month for procurement activity is required.");
         }
 
-        if (!IsValidProcurementMonth(itemRequest.EndOfProcurementActivity))
+        if (!IsValidProcurementMonth(endOfProcurementActivity))
         {
             throw new InvalidOperationException(
                 "A valid end month for procurement activity is required.");
         }
 
         var startMonth = DateTime.ParseExact(
-            itemRequest.StartOfProcurementActivity,
+            startOfProcurementActivity,
             "yyyy-MM",
             CultureInfo.InvariantCulture);
         var endMonth = DateTime.ParseExact(
-            itemRequest.EndOfProcurementActivity,
+            endOfProcurementActivity,
             "yyyy-MM",
             CultureInfo.InvariantCulture);
         if (endMonth < startMonth)
@@ -333,8 +368,8 @@ public sealed class CreatePPMPHandler(
             ProjectType = projectType,
             PreProcurementConference = itemRequest.PreProcurementConference,
             RecommendedModeOfProcurement = itemRequest.RecommendedModeOfProcurement?.Trim() ?? string.Empty,
-            StartOfProcurementActivity = itemRequest.StartOfProcurementActivity?.Trim() ?? string.Empty,
-            EndOfProcurementActivity = itemRequest.EndOfProcurementActivity?.Trim() ?? string.Empty,
+            StartOfProcurementActivity = startOfProcurementActivity,
+            EndOfProcurementActivity = endOfProcurementActivity,
             ExpectedDeliveryImplementationPeriod =
                 itemRequest.ExpectedDeliveryImplementationPeriod?.Trim() ?? string.Empty,
             SourceOfFunds = itemRequest.SourceOfFunds?.Trim() ?? string.Empty,

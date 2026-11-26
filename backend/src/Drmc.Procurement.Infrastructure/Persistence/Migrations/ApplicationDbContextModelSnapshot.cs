@@ -38,6 +38,9 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("ApprovedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("ApprovedByUserId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -45,6 +48,18 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("PlanningYearId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PreparedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("PreparedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RecommendedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RecommendedByUserId")
                         .HasColumnType("int");
 
                     b.Property<int>("RevisionNo")
@@ -60,9 +75,15 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                     b.HasIndex("APPReference")
                         .IsUnique();
 
+                    b.HasIndex("ApprovedByUserId");
+
                     b.HasIndex("CreatedBy");
 
                     b.HasIndex("PlanningYearId");
+
+                    b.HasIndex("PreparedByUserId");
+
+                    b.HasIndex("RecommendedByUserId");
 
                     b.ToTable("APPs", (string)null);
                 });
@@ -1025,6 +1046,13 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("PPMPType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Initial");
+
                     b.Property<int>("PlanningYearId")
                         .HasColumnType("int");
 
@@ -1050,6 +1078,10 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("Status")
                         .HasFilter("[Status] IN ('For Unit Head Approval', 'Approved by Unit Head')");
+
+                    b.HasIndex("DepartmentId", "PlanningYearId")
+                        .IsUnique()
+                        .HasFilter("[PPMPType] = 'Initial'");
 
                     b.HasIndex("DepartmentId", "Status");
 
@@ -1269,6 +1301,11 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Drmc.Procurement.Domain.Entities.APP.APP", b =>
                 {
+                    b.HasOne("Drmc.Procurement.Domain.Entities.Identity.User", "ApprovedByUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Drmc.Procurement.Domain.Entities.Identity.User", "Creator")
                         .WithMany()
                         .HasForeignKey("CreatedBy")
@@ -1281,9 +1318,25 @@ namespace Drmc.Procurement.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Drmc.Procurement.Domain.Entities.Identity.User", "PreparedByUser")
+                        .WithMany()
+                        .HasForeignKey("PreparedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Drmc.Procurement.Domain.Entities.Identity.User", "RecommendedByUser")
+                        .WithMany()
+                        .HasForeignKey("RecommendedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ApprovedByUser");
+
                     b.Navigation("Creator");
 
                     b.Navigation("PlanningYear");
+
+                    b.Navigation("PreparedByUser");
+
+                    b.Navigation("RecommendedByUser");
                 });
 
             modelBuilder.Entity("Drmc.Procurement.Domain.Entities.APP.APPCategory", b =>

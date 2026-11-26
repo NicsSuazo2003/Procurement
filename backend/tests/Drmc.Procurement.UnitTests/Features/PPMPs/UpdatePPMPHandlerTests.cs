@@ -277,9 +277,11 @@ public sealed class UpdatePPMPHandlerTests
         public Task<bool> IsActiveProcurementStaffAsync(int userId, CancellationToken cancellationToken = default) => Task.FromResult(true);
         public Task<Department?> GetActiveDepartmentAsync(int departmentId, CancellationToken cancellationToken = default) => Task.FromResult<Department?>(null);
         public Task<PlanningYear?> GetPlanningYearAsync(int planningYearId, CancellationToken cancellationToken = default) => Task.FromResult<PlanningYear?>(null);
+        public Task<bool> HasInitialPPMPAsync(int departmentId, int planningYearId, CancellationToken cancellationToken = default) => Task.FromResult(false);
         public Task<IReadOnlyCollection<int>> GetActiveCategoryIdsAsync(int planningYearId, IReadOnlyCollection<int> categoryIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<int>>(ActiveCategoryIds.Intersect(categoryIds).ToArray());
         public Task<IReadOnlyDictionary<int, Item>> GetActiveItemsByIdsAsync(IReadOnlyCollection<int> itemIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyDictionary<int, Item>>(new Dictionary<int, Item>());
         public Task<IReadOnlyCollection<int>> GetActiveDepartmentSectionIdsAsync(int departmentId, IReadOnlyCollection<int> sectionIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<int>>(ActiveSectionIds.Intersect(sectionIds).ToArray());
+        public Task<IReadOnlyCollection<int>> GetActiveTeamIdsForUserAsync(int userId, int departmentId, IReadOnlyCollection<int> teamIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyCollection<int>>([]);
         public Task<IReadOnlyDictionary<int, DepartmentSection>> GetActiveDepartmentSectionsAsync(int departmentId, IReadOnlyCollection<int> sectionIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyDictionary<int, DepartmentSection>>(Sections.Where(pair => sectionIds.Contains(pair.Key)).ToDictionary(pair => pair.Key, pair => pair.Value));
     }
 
